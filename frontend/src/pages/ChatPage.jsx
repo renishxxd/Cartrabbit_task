@@ -5,6 +5,7 @@ import ContactInfo from '../components/ContactInfo';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
 import { useAuth } from '../context/AuthContext';
+import { MessageCircle } from 'lucide-react';
 
 const ChatPage = () => {
   const [activeChat, setActiveChat] = useState(null);
@@ -60,16 +61,21 @@ const ChatPage = () => {
     return () => socket.off('newMessage', handleNewMessage);
   }, [socket, activeChat, user]);
 
-  const handleSend = async () => {
-    if (!inputText.trim() || !activeChat) return;
+  const handleSend = async (textOverride, mediaData) => {
+    const textToSend = textOverride !== undefined ? textOverride : inputText.trim();
+    if ((!textToSend && !mediaData) || !activeChat) return;
     
-    const textToSend = inputText.trim();
-    setInputText('');
+    if (textOverride === undefined) setInputText('');
     
     try {
-      const { data } = await api.post(`/messages/send/${activeChat.id}`, {
-        text: textToSend
-      });
+      const payload = { text: textToSend };
+      if (mediaData) {
+        payload.mediaUrl = mediaData.url;
+        payload.mediaType = mediaData.type;
+        payload.mediaMetadata = mediaData.metadata;
+      }
+
+      const { data } = await api.post(`/messages/send/${activeChat.id}`, payload);
       if (data.success) {
         setMessages(prev => [...prev, data.data]);
         setRefreshTrigger(prev => prev + 1);
@@ -82,6 +88,7 @@ const ChatPage = () => {
   return (
     <div style={{ 
       display: 'flex', 
+      flexDirection: 'column',
       height: '100vh', 
       width: '100vw', 
       backgroundColor: 'var(--bg-main)',
@@ -90,30 +97,49 @@ const ChatPage = () => {
       left: 0,
       zIndex: 1000
     }}>
-      <Sidebar 
-        activeChat={activeChat} 
-        setActiveChat={setActiveChat} 
-        onLogout={logout}
-        refreshTrigger={refreshTrigger}
-      />
-      <ChatWindow 
-        activeChat={activeChat} 
-        setActiveChat={setActiveChat}
-        messages={messages}
-        setMessages={setMessages}
-        inputText={inputText}
-        setInputText={setInputText}
-        handleSend={handleSend}
-        setRefreshTrigger={setRefreshTrigger}
-        setShowContactInfo={setShowContactInfo}
-      />
-      {showContactInfo && activeChat && (
-        <ContactInfo 
+      {/* Native-like Title Bar */}
+      <div style={{
+        height: '32px',
+        backgroundColor: 'var(--bg-sidebar)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+        gap: '8px',
+        borderBottom: '1px solid var(--divider)',
+        userSelect: 'none',
+        WebkitAppRegion: 'drag'
+      }}>
+        <MessageCircle size={14} color="var(--accent)" fill="var(--accent)" />
+        <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)' }}>PingChat</span>
+      </div>
+
+      {/* Main Chat Layout Container */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <Sidebar 
           activeChat={activeChat} 
-          onClose={() => setShowContactInfo(false)}
-          setRefreshTrigger={setRefreshTrigger}
+          setActiveChat={setActiveChat} 
+          onLogout={logout}
+          refreshTrigger={refreshTrigger}
         />
-      )}
+        <ChatWindow 
+          activeChat={activeChat} 
+          setActiveChat={setActiveChat}
+          messages={messages}
+          setMessages={setMessages}
+          inputText={inputText}
+          setInputText={setInputText}
+          handleSend={handleSend}
+          setRefreshTrigger={setRefreshTrigger}
+          setShowContactInfo={setShowContactInfo}
+        />
+        {showContactInfo && activeChat && (
+          <ContactInfo 
+            activeChat={activeChat} 
+            onClose={() => setShowContactInfo(false)}
+            setRefreshTrigger={setRefreshTrigger}
+          />
+        )}
+      </div>
     </div>
   );
 };

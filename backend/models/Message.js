@@ -14,7 +14,18 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
+      required: false, // Made optional for media-only messages
+    },
+    mediaUrl: {
+      type: String,
+    },
+    mediaType: {
+      type: String, // 'image', 'video', 'audio', 'document'
+    },
+    mediaMetadata: {
+      filename: String,
+      size: Number,
+      format: String,
     },
     // Useful for read receipts later
     read: {

@@ -8,7 +8,7 @@ import { getReceiverSocketId, io } from '../socket/socket.js';
 // @route   POST /api/messages/send/:id
 // @access  Private
 export const sendMessage = asyncHandler(async (req, res) => {
-  const { text } = req.body;
+  const { text, mediaUrl, mediaType, mediaMetadata } = req.body;
   const { id: receiverId } = req.params;
   const senderId = req.user._id;
 
@@ -25,9 +25,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
     throw new Error('You have blocked this user. Unblock to send a message');
   }
 
-  if (!text) {
+  if (!text && !mediaUrl) {
     res.status(400);
-    throw new Error('Message text is required');
+    throw new Error('Message text or media is required');
   }
 
   let conversation = await Conversation.findOne({
@@ -44,6 +44,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
     senderId,
     conversationId: conversation._id,
     text,
+    mediaUrl,
+    mediaType,
+    mediaMetadata,
   });
 
   if (newMessage) {
@@ -53,6 +56,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
     const messageObj = {
       id: newMessage._id,
       text: newMessage.text,
+      mediaUrl: newMessage.mediaUrl,
+      mediaType: newMessage.mediaType,
+      mediaMetadata: newMessage.mediaMetadata,
       senderId: newMessage.senderId,
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: newMessage.createdAt
@@ -90,6 +96,9 @@ export const getMessages = asyncHandler(async (req, res) => {
   const formattedMessages = messages.map(msg => ({
     id: msg._id,
     text: msg.text,
+    mediaUrl: msg.mediaUrl,
+    mediaType: msg.mediaType,
+    mediaMetadata: msg.mediaMetadata,
     senderId: msg.senderId,
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     createdAt: msg.createdAt
@@ -115,21 +124,31 @@ export const getConversations = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, data: [] });
   }
 
-  const formattedConversations = conversations.map(conv => {
-    const otherParticipant = conv.participants.find(p => p._id.toString() !== userId.toString());
-    const targetUser = otherParticipant || conv.participants[0];
+  const formattedConversations = conversations.reduce((acc, conv) => {
+    // Filter out potential nulls
+    const validParticipants = conv.participants.filter(p => p != null);
     
-    return {
-      id: targetUser._id,
-      username: targetUser.username,
-      avatar: targetUser.avatar,
-      about: targetUser.about,
+    // Find the other participant
+    const otherParticipant = validParticipants.find(p => p._id.toString() !== userId.toString());
+    
+    // If no other participant, the other user was likely deleted directly from DB
+    // We skip this conversation entirely so it doesn't show up in the UI.
+    if (!otherParticipant) {
+      return acc;
+    }
+    
+    acc.push({
+      id: otherParticipant._id,
+      username: otherParticipant.username,
+      avatar: otherParticipant.avatar,
+      about: otherParticipant.about,
       lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
       lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
       updatedAt: conv.updatedAt,
       isOnline: false
-    };
-  });
+    });
+    return acc;
+  }, []);
 
   res.status(200).json({ success: true, data: formattedConversations });
 });
@@ -201,4 +220,24 @@ export const toggleDisappearingMessages = asyncHandler(async (req, res) => {
   await conversation.save();
 
   res.status(200).json({ success: true, timer: conversation.disappearingMessagesTime });
+});
+
+// @desc    Upload media to Cloudinary
+// @route   POST /api/messages/upload
+// @access  Private
+export const uploadMediaFile = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No file uploaded');
+  }
+
+  // Cloudinary returns the stored info in req.file
+  const fileData = {
+    url: req.file.path,
+    filename: req.file.filename,
+    size: req.file.size,
+    format: req.file.mimetype,
+  };
+
+  res.status(200).json({ success: true, data: fileData });
 });
