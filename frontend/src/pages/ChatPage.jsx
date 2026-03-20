@@ -33,6 +33,9 @@ const ChatPage = () => {
         if (data.success) {
           setMessages(data.data);
         }
+        // Mark as read when opening
+        await api.put(`/messages/mark-read/${activeChat.id}`);
+        setRefreshTrigger(prev => prev + 1);
       } catch (err) {
         console.error("Failed to load history", err);
       }
@@ -41,16 +44,21 @@ const ChatPage = () => {
   }, [activeChat]);
 
   useEffect(() => {
-    if (!socket || !activeChat) return;
+    if (!socket) return;
     
     const handleNewMessage = (newMessage) => {
-      const isRelevant = 
+      const isRelevant = activeChat && (
         newMessage.senderId === activeChat.id || 
         newMessage.senderId === user._id || 
-        newMessage.senderId === 'me';
+        newMessage.senderId === 'me'
+      );
         
       if (isRelevant) {
         setMessages(prev => [...prev, newMessage]);
+        // If it's the active chat, mark it as read immediately
+        if (newMessage.senderId === activeChat?.id) {
+          api.put(`/messages/mark-read/${activeChat.id}`).catch(err => console.error(err));
+        }
       }
       
       setRefreshTrigger(prev => prev + 1);

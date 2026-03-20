@@ -124,33 +124,59 @@ export const getConversations = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, data: [] });
   }
 
-  const formattedConversations = conversations.reduce((acc, conv) => {
-    // Filter out potential nulls
-    const validParticipants = conv.participants.filter(p => p != null);
-    
-    // Find the other participant
-    const otherParticipant = validParticipants.find(p => p._id.toString() !== userId.toString());
-    
-    // If no other participant, the other user was likely deleted directly from DB
-    // We skip this conversation entirely so it doesn't show up in the UI.
-    if (!otherParticipant) {
-      return acc;
-    }
-    
-    acc.push({
-      id: otherParticipant._id,
-      username: otherParticipant.username,
-      avatar: otherParticipant.avatar,
-      about: otherParticipant.about,
-      lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
-      lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-      updatedAt: conv.updatedAt,
-      isOnline: false
-    });
-    return acc;
-  }, []);
+  const formattedConversationsRaw = await Promise.all(
+    conversations.map(async (conv) => {
+      const validParticipants = conv.participants.filter(p => p != null);
+      const otherParticipant = validParticipants.find(p => p._id.toString() !== userId.toString());
+      
+      if (!otherParticipant) return null;
+
+      const unreadCount = await Message.countDocuments({
+        conversationId: conv._id,
+        senderId: { $ne: userId },
+        read: false
+      });
+      
+      return {
+        id: otherParticipant._id,
+        username: otherParticipant.username,
+        avatar: otherParticipant.avatar,
+        about: otherParticipant.about,
+        lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
+        lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+        updatedAt: conv.updatedAt,
+        unreadCount: unreadCount,
+        isOnline: false
+      };
+    })
+  );
+
+  const formattedConversations = formattedConversationsRaw.filter(Boolean);
 
   res.status(200).json({ success: true, data: formattedConversations });
+});
+
+// @desc    Mark all messages in a conversation as read
+// @route   PUT /api/messages/mark-read/:id
+// @access  Private
+export const markConversationsAsRead = asyncHandler(async (req, res) => {
+  const { id: userToChatId } = req.params;
+  const userId = req.user._id;
+
+  const conversation = await Conversation.findOne({
+    participants: { $all: [userId, userToChatId] },
+  });
+
+  if (!conversation) {
+    return res.status(200).json({ success: true, message: 'No conversation found' });
+  }
+
+  await Message.updateMany(
+    { conversationId: conversation._id, senderId: userToChatId, read: false },
+    { $set: { read: true } }
+  );
+
+  res.status(200).json({ success: true, message: 'Messages marked as read' });
 });
 
 // @desc    Clear all messages in a chat (but keep the conversation)

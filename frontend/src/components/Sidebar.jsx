@@ -200,16 +200,34 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
                       {user.lastSeen || ''}
                     </span>
                   </div>
-                  <p style={{ 
-                    fontSize: '14px', 
-                    color: 'var(--text-secondary)', 
-                    margin: 0,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }}>
-                    {user.lastMessage || 'New user'}
-                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <p style={{ 
+                      fontSize: '14px', 
+                      color: 'var(--text-secondary)', 
+                      margin: 0,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      flex: 1
+                    }}>
+                      {user.lastMessage || 'New user'}
+                    </p>
+                    {user.unreadCount > 0 && !isActive && (
+                      <span style={{ 
+                        backgroundColor: '#25D366', 
+                        color: 'white', 
+                        borderRadius: '12px', 
+                        padding: '2px 8px', 
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        marginLeft: '8px',
+                        minWidth: '20px',
+                        textAlign: 'center'
+                      }}>
+                        {user.unreadCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
