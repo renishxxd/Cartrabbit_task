@@ -29,6 +29,8 @@ A full-stack, real-time chat application inspired by WhatsApp Web, built using t
    - Instant real-time pushing using WebSockets (`socket.io`).
    - Clean MVC controller logic handling authentication, user blocking, reporting, and messages.
 
+> **Note on Local API Routing:** The frontend is already brilliantly configured to automatically fall back to the local backend `http://localhost:5000` out of the box! If you ever need to manually change the paths (for example, to point your local computer to a live backend), you can either define `VITE_API_URL` in a `.env` file, or manually edit the base URLs located inside `frontend/src/services/api.js` and `frontend/src/services/useSocket.js`.
+
 ## Prerequisites
 
 - Node.js (v16+ recommended)
