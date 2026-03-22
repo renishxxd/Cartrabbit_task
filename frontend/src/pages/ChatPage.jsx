@@ -87,12 +87,14 @@ const ChatPage = () => {
       setMessages(prev => prev.map(msg => 
         msg.id === messageId ? { ...msg, text: newText, isEdited } : msg
       ));
+      setRefreshTrigger(prev => prev + 1);
     };
 
     const handleMessageDeleted = ({ messageId, isDeleted }) => {
       setMessages(prev => prev.map(msg => 
         msg.id === messageId ? { ...msg, text: '🚫 This message was deleted', mediaUrl: null, mediaType: null, isDeleted } : msg
       ));
+      setRefreshTrigger(prev => prev + 1);
     };
 
     socket.on('newMessage', handleNewMessage);

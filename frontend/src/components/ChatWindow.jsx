@@ -141,6 +141,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
         setMessages(prev => prev.map(msg => 
           msg.id === messageId ? { ...msg, text: newText, isEdited: true } : msg
         ));
+        setRefreshTrigger(prev => prev + 1);
       }
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to edit message');
@@ -155,6 +156,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
         setMessages(prev => prev.map(msg => 
           msg.id === messageId ? { ...msg, text: '🚫 This message was deleted', mediaUrl: null, mediaType: null, isDeleted: true } : msg
         ));
+        setRefreshTrigger(prev => prev + 1);
       }
     } catch (e) {
       alert(e.response?.data?.message || 'Failed to delete message');
