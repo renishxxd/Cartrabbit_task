@@ -10,7 +10,8 @@ export const useSocket = (url) => {
   useEffect(() => {
     // Connect to websocket when user is logged in
     if (user && !socket) {
-      const socketInstance = io(url || 'http://localhost:5000', {
+      const defaultUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+      const socketInstance = io(url || defaultUrl, {
         query: {
           userId: user._id
         }
