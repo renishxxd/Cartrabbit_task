@@ -1,5 +1,7 @@
 # PingChat Web Clone
 
+🟢 **Live Demo:** [https://cartrabbit-task.vercel.app](https://cartrabbit-task.vercel.app)
+
 A full-stack, real-time chat application inspired by WhatsApp Web, built using the MERN stack (MongoDB, Express, React, Node.js) and Socket.IO. This project was developed to demonstrate core full-stack application structure, real-time bidirectional communication, modern dynamic UI/UX, and robust API handling.
 
 ## Features Included
