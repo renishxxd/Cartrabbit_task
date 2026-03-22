@@ -26,11 +26,20 @@ const userSchema = mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters'],
-      match: [
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
-        'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
-      ]
+      validate: {
+        validator: function (v) {
+          // Skip password validation if updating other fields (like avatar/about)
+          if (this && typeof this.isModified === 'function' && !this.isModified('password')) {
+            return true;
+          }
+          // Only validate plain text password changes
+          return (
+            v.length >= 8 &&
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v)
+          );
+        },
+        message: 'Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character',
+      },
     },
     avatar: {
       type: String,
