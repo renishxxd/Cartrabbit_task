@@ -1,5 +1,6 @@
 import asyncHandler from '../middleware/asyncHandler.js';
 import User from '../models/User.js';
+import { io } from '../socket/socket.js';
 
 // @desc    Get all users (Basic placeholder for Module 2)
 // @route   GET /api/users
@@ -157,6 +158,13 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (req.body.avatar !== undefined) user.avatar = req.body.avatar;
 
   const updated = await user.save();
+
+  io.emit('profile_updated', {
+    id: updated._id,
+    avatar: updated.avatar,
+    about: updated.about,
+    username: updated.username
+  });
 
   res.status(200).json({
     success: true,

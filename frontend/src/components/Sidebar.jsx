@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Search, LogOut } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../services/useSocket';
 import UserProfile from './UserProfile';
 
 const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
@@ -11,6 +12,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const { user } = useAuth();
+  const { socket } = useSocket();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -25,6 +27,21 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
     };
     fetchConversations();
   }, [refreshTrigger]);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleProfileUpdate = (updatedProfile) => {
+      setConversations(prev => prev.map(conv => 
+        conv.id === updatedProfile.id 
+          ? { ...conv, avatar: updatedProfile.avatar, about: updatedProfile.about, username: updatedProfile.username } 
+          : conv
+      ));
+    };
+
+    socket.on('profile_updated', handleProfileUpdate);
+    return () => socket.off('profile_updated', handleProfileUpdate);
+  }, [socket]);
 
   useEffect(() => {
     const searchUsers = async () => {

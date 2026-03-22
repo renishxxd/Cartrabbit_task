@@ -73,10 +73,14 @@ const ChatPage = () => {
       ));
     };
 
-    const handleMessagesRead = () => {
-      setMessages(prev => prev.map(msg => 
-        (msg.status === 'sent' || msg.status === 'delivered') ? { ...msg, status: 'read' } : msg
-      ));
+    const handleMessagesRead = (payload) => {
+      if (!payload || !activeChat) return;
+      // Only show blue ticks if the person reading them is the one we are actively chatting with
+      if (activeChat.id === payload.readerId) {
+        setMessages(prev => prev.map(msg => 
+          (msg.status === 'sent' || msg.status === 'delivered') ? { ...msg, status: 'read' } : msg
+        ));
+      }
     };
 
     socket.on('newMessage', handleNewMessage);
