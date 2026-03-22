@@ -60,6 +60,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       mediaType: newMessage.mediaType,
       mediaMetadata: newMessage.mediaMetadata,
       senderId: newMessage.senderId,
+      status: newMessage.status,
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: newMessage.createdAt
     };
@@ -100,6 +101,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     mediaType: msg.mediaType,
     mediaMetadata: msg.mediaMetadata,
     senderId: msg.senderId,
+    status: msg.status,
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     createdAt: msg.createdAt
   }));
@@ -171,10 +173,17 @@ export const markConversationsAsRead = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, message: 'No conversation found' });
   }
 
-  await Message.updateMany(
+  const result = await Message.updateMany(
     { conversationId: conversation._id, senderId: userToChatId, read: false },
-    { $set: { read: true } }
+    { $set: { read: true, status: 'read' } }
   );
+
+  if (result.modifiedCount > 0) {
+    const senderSocketId = getReceiverSocketId(userToChatId);
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("messages_read", { conversationId: conversation._id, readerId: userId });
+    }
+  }
 
   res.status(200).json({ success: true, message: 'Messages marked as read' });
 });

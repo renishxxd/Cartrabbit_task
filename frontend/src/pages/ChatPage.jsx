@@ -59,14 +59,35 @@ const ChatPage = () => {
         if (newMessage.senderId === activeChat?.id) {
           api.put(`/messages/mark-read/${activeChat.id}`).catch(err => console.error(err));
         }
+      } else if (newMessage.senderId !== user._id && newMessage.senderId !== 'me') {
+        // Not active chat, but we received it, mark as delivered
+        socket.emit('message_delivered', { messageId: newMessage.id, senderId: newMessage.senderId });
       }
       
       setRefreshTrigger(prev => prev + 1);
     };
 
+    const handleMessageStatusUpdate = ({ messageId, status }) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, status } : msg
+      ));
+    };
+
+    const handleMessagesRead = () => {
+      setMessages(prev => prev.map(msg => 
+        (msg.status === 'sent' || msg.status === 'delivered') ? { ...msg, status: 'read' } : msg
+      ));
+    };
+
     socket.on('newMessage', handleNewMessage);
+    socket.on('message_status_update', handleMessageStatusUpdate);
+    socket.on('messages_read', handleMessagesRead);
     
-    return () => socket.off('newMessage', handleNewMessage);
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+      socket.off('message_status_update', handleMessageStatusUpdate);
+      socket.off('messages_read', handleMessagesRead);
+    };
   }, [socket, activeChat, user]);
 
   const handleSend = async (textOverride, mediaData) => {

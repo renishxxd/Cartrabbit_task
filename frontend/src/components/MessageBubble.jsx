@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Download } from 'lucide-react';
+import { FileText, Download, Check, CheckCheck } from 'lucide-react';
 
 const getDownloadUrl = (url) => {
   if (!url) return '';
@@ -162,15 +162,27 @@ const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect
             {message.text}
           </p>
         )}
-        <span style={{ 
-          fontSize: '11px', 
-          color: 'var(--text-secondary)',
-          display: 'block',
-          textAlign: 'right',
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'flex-end', 
+          alignItems: 'center', 
+          gap: '4px',
           marginTop: '2px'
         }}>
-          {message.time}
-        </span>
+          <span style={{ 
+            fontSize: '11px', 
+            color: 'var(--text-secondary)'
+          }}>
+            {message.time}
+          </span>
+          {isOwn && (
+            <span style={{ display: 'flex', alignItems: 'center' }}>
+              {(!message.status || message.status === 'sent') && <Check size={14} color="var(--text-secondary)" />}
+              {message.status === 'delivered' && <CheckCheck size={14} color="var(--text-secondary)" />}
+              {message.status === 'read' && <CheckCheck size={14} color="#53bdeb" />}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
