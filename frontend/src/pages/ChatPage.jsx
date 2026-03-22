@@ -83,14 +83,30 @@ const ChatPage = () => {
       }
     };
 
+    const handleMessageEdited = ({ messageId, newText, isEdited }) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, text: newText, isEdited } : msg
+      ));
+    };
+
+    const handleMessageDeleted = ({ messageId, isDeleted }) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, text: '🚫 This message was deleted', mediaUrl: null, mediaType: null, isDeleted } : msg
+      ));
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('message_status_update', handleMessageStatusUpdate);
     socket.on('messages_read', handleMessagesRead);
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
     
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('message_status_update', handleMessageStatusUpdate);
       socket.off('messages_read', handleMessagesRead);
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
     };
   }, [socket, activeChat, user]);
 

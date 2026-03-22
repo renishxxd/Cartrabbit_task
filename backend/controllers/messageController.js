@@ -61,6 +61,8 @@ export const sendMessage = asyncHandler(async (req, res) => {
       mediaMetadata: newMessage.mediaMetadata,
       senderId: newMessage.senderId,
       status: newMessage.status,
+      isEdited: newMessage.isEdited || false,
+      isDeleted: newMessage.isDeleted || false,
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: newMessage.createdAt
     };
@@ -102,6 +104,8 @@ export const getMessages = asyncHandler(async (req, res) => {
     mediaMetadata: msg.mediaMetadata,
     senderId: msg.senderId,
     status: msg.status,
+    isEdited: msg.isEdited || false,
+    isDeleted: msg.isDeleted || false,
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     createdAt: msg.createdAt
   }));
@@ -255,6 +259,103 @@ export const toggleDisappearingMessages = asyncHandler(async (req, res) => {
   await conversation.save();
 
   res.status(200).json({ success: true, timer: conversation.disappearingMessagesTime });
+});
+
+// @desc    Edit a message text
+// @route   PUT /api/messages/edit/:id
+// @access  Private
+export const editMessage = asyncHandler(async (req, res) => {
+  const { id: messageId } = req.params;
+  const { newText } = req.body;
+  const senderId = req.user._id;
+
+  if (!newText || newText.trim().length === 0) {
+    res.status(400);
+    throw new Error('Message text cannot be empty');
+  }
+
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    res.status(404);
+    throw new Error('Message not found');
+  }
+
+  if (message.senderId.toString() !== senderId.toString()) {
+    res.status(403);
+    throw new Error('You can only edit your own messages');
+  }
+
+  if (message.isDeleted) {
+    res.status(400);
+    throw new Error('Cannot edit a deleted message');
+  }
+
+  message.text = newText;
+  message.isEdited = true;
+  await message.save();
+
+  // Find the other participant in the conversation to emit socket event
+  const conversation = await Conversation.findById(message.conversationId);
+  if (conversation) {
+    const receiverId = conversation.participants.find(p => p.toString() !== senderId.toString());
+    if (receiverId) {
+      const receiverSocketId = getReceiverSocketId(receiverId.toString());
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('message_edited', {
+          messageId: message._id,
+          newText,
+          isEdited: true
+        });
+      }
+    }
+  }
+
+  res.status(200).json({ success: true, messageId: message._id, newText, isEdited: true });
+});
+
+// @desc    Delete a message for everyone
+// @route   DELETE /api/messages/delete-for-everyone/:id
+// @access  Private
+export const deleteMessageForEveryone = asyncHandler(async (req, res) => {
+  const { id: messageId } = req.params;
+  const senderId = req.user._id;
+
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    res.status(404);
+    throw new Error('Message not found');
+  }
+
+  if (message.senderId.toString() !== senderId.toString()) {
+    res.status(403);
+    throw new Error('You can only delete your own messages');
+  }
+
+  message.text = '🚫 This message was deleted';
+  message.mediaUrl = null;
+  message.mediaType = null;
+  message.mediaMetadata = null;
+  message.isDeleted = true;
+  await message.save();
+
+  // Find the other participant to emit socket event
+  const conversation = await Conversation.findById(message.conversationId);
+  if (conversation) {
+    const receiverId = conversation.participants.find(p => p.toString() !== senderId.toString());
+    if (receiverId) {
+      const receiverSocketId = getReceiverSocketId(receiverId.toString());
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('message_deleted', {
+          messageId: message._id,
+          isDeleted: true
+        });
+      }
+    }
+  }
+
+  res.status(200).json({ success: true, messageId: message._id, isDeleted: true });
 });
 
 // @desc    Upload media to Cloudinary

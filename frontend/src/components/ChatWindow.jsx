@@ -134,6 +134,33 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     alert('Simulated local delete for ' + selectedMessages.length + ' messages!');
   };
 
+  const handleEditSubmit = async (messageId, newText) => {
+    try {
+      const { data } = await api.put(`/messages/edit/${messageId}`, { newText });
+      if (data.success) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, text: newText, isEdited: true } : msg
+        ));
+      }
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to edit message');
+    }
+  };
+
+  const handleDeleteSubmit = async (messageId) => {
+    if (!window.confirm('Delete this message for everyone?')) return;
+    try {
+      const { data } = await api.delete(`/messages/delete-for-everyone/${messageId}`);
+      if (data.success) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, text: '🚫 This message was deleted', mediaUrl: null, mediaType: null, isDeleted: true } : msg
+        ));
+      }
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to delete message');
+    }
+  };
+
   const toggleSelectMessage = (id) => {
     setSelectedMessages(prev => 
       prev.includes(id) 
@@ -375,6 +402,8 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
               isSelecting={isSelecting}
               isSelected={selectedMessages.includes(msg.id)}
               onToggleSelect={toggleSelectMessage}
+              onEditSubmit={handleEditSubmit}
+              onDelete={handleDeleteSubmit}
             />
           ))
         )}

@@ -27,6 +27,15 @@ const messageSchema = new mongoose.Schema(
       size: Number,
       format: String,
     },
+    // Action tracking
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     // Useful for read receipts later
     read: {
       type: Boolean,

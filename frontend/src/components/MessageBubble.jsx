@@ -1,14 +1,32 @@
-import React from 'react';
-import { FileText, Download, Check, CheckCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { FileText, Download, Check, CheckCheck, Pencil, Trash2, X } from 'lucide-react';
 
 const getDownloadUrl = (url) => {
   if (!url) return '';
   return url.replace('/upload/', '/upload/fl_attachment/');
 };
 
-const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect }) => {
+const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState('');
+
+  const startEditing = () => {
+    setEditText(message.text || '');
+    setIsEditing(true);
+  };
+
+  const submitEdit = () => {
+    if (editText.trim() && editText !== message.text) {
+      onEditSubmit(message.id, editText.trim());
+    }
+    setIsEditing(false);
+  };
+
   return (
     <div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -53,7 +71,25 @@ const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect
         boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
         position: 'relative'
       }}>
-        {message.mediaUrl && (
+        {isOwn && !message.isDeleted && isHovered && !isSelecting && !isEditing && (
+          <div style={{
+            position: 'absolute',
+            top: '-12px',
+            right: '0',
+            backgroundColor: 'var(--bg-sidebar)',
+            borderRadius: '12px',
+            padding: '4px 8px',
+            display: 'flex',
+            gap: '8px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+            zIndex: 10
+          }}>
+            <Pencil size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={startEditing} />
+            <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => onDelete(message.id)} />
+          </div>
+        )}
+
+        {message.mediaUrl && !message.isDeleted && (
           <div style={{ marginBottom: message.text ? '8px' : '0' }}>
             {message.mediaType === 'image' && (
               <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -150,17 +186,32 @@ const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect
             )}
           </div>
         )}
-        {message.text && (
-          <p style={{ 
-            fontSize: '14px', 
-            lineHeight: '1.4', 
-            margin: '0 0 4px 0',
-            color: 'var(--text)',
-            wordWrap: 'break-word',
-            whiteSpace: 'pre-wrap'
-          }}>
-            {message.text}
-          </p>
+        {isEditing ? (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: message.mediaUrl ? '8px' : '0' }}>
+            <input 
+              autoFocus
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') submitEdit(); if (e.key === 'Escape') setIsEditing(false); }}
+              style={{ flex: 1, padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--accent)', background: 'var(--bg-main)', color: 'var(--text)', outline: 'none' }}
+            />
+            <Check size={16} color="var(--accent)" style={{ cursor: 'pointer', flexShrink: 0 }} onClick={submitEdit} />
+            <X size={16} color="var(--text-secondary)" style={{ cursor: 'pointer', flexShrink: 0 }} onClick={() => setIsEditing(false)} />
+          </div>
+        ) : (
+          message.text && (
+            <p style={{ 
+              fontSize: '14px', 
+              lineHeight: '1.4', 
+              margin: '0 0 4px 0',
+              color: message.isDeleted ? 'var(--text-secondary)' : 'var(--text)',
+              fontStyle: message.isDeleted ? 'italic' : 'normal',
+              wordWrap: 'break-word',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {message.text}
+            </p>
+          )
         )}
         <div style={{ 
           display: 'flex', 
@@ -173,7 +224,7 @@ const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect
             fontSize: '11px', 
             color: 'var(--text-secondary)'
           }}>
-            {message.time}
+            {message.time} {message.isEdited && !message.isDeleted && '(edited)'}
           </span>
           {isOwn && (
             <span style={{ display: 'flex', alignItems: 'center' }}>
