@@ -49,6 +49,17 @@ const sendOtp = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, message: 'OTP sent successfully to email' });
   } catch (err) {
     console.error('Email sending failed:', err);
+    
+    // Emergency fallback for Live Demos when Gmail blocks Render IP
+    if (process.env.NODE_ENV === 'production') {
+      await Otp.deleteMany({ email });
+      await Otp.create({ email, otp: '123456' });
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Server email blocked by Google security. Demo Bypass Active! Use OTP: 123456 to continue.' 
+      });
+    }
+
     await Otp.deleteMany({ email });
     res.status(500);
     throw new Error('Email could not be sent. Please check server configuration.');
