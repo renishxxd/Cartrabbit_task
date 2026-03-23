@@ -422,18 +422,29 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
             No messages found matching "{searchQuery}"
           </div>
         ) : (
-          filteredMessages.map(msg => (
-            <MessageBubble 
-              key={msg.id} 
-              message={msg} 
-              isOwn={msg.senderId === user?._id || msg.senderId === 'me'} 
-              isSelecting={isSelecting}
-              isSelected={selectedMessages.includes(msg.id)}
-              onToggleSelect={toggleSelectMessage}
-              onEditSubmit={handleEditSubmit}
-              onDelete={handleDeleteSubmit}
-            />
-          ))
+          filteredMessages.map(msg => {
+            if (msg.isSystemMessage) {
+              return (
+                <div key={msg.id} style={{ display: 'flex', justifyContent: 'center', margin: '4px 0' }}>
+                  <div style={{ backgroundColor: 'var(--bg-sidebar)', padding: '6px 12px', borderRadius: '12px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <MessageBubble 
+                key={msg.id} 
+                message={msg} 
+                isOwn={msg.senderId === user?._id || msg.senderId === 'me'} 
+                isSelecting={isSelecting}
+                isSelected={selectedMessages.includes(msg.id)}
+                onToggleSelect={toggleSelectMessage}
+                onEditSubmit={handleEditSubmit}
+                onDelete={handleDeleteSubmit}
+              />
+            );
+          })
         )}
         {/* Invisible div for auto-scroll */}
         <div ref={messagesEndRef} style={{ height: '1px' }} />

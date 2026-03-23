@@ -51,6 +51,7 @@ const ChatPage = () => {
     
     const handleNewMessage = (newMessage) => {
       const isRelevant = activeChat && (
+        newMessage.conversationId === activeChat.id ||
         newMessage.senderId === activeChat.id || 
         newMessage.senderId === user._id || 
         newMessage.senderId === 'me'
@@ -110,6 +111,7 @@ const ChatPage = () => {
     socket.on('message_edited', handleMessageEdited);
     socket.on('message_deleted', handleMessageDeleted);
     socket.on('profile_updated', handleProfileUpdated);
+    socket.on('group_updated', handleProfileUpdated);
     
     return () => {
       socket.off('newMessage', handleNewMessage);
@@ -118,6 +120,7 @@ const ChatPage = () => {
       socket.off('message_edited', handleMessageEdited);
       socket.off('message_deleted', handleMessageDeleted);
       socket.off('profile_updated', handleProfileUpdated);
+      socket.off('group_updated', handleProfileUpdated);
     };
   }, [socket, activeChat, user]);
 

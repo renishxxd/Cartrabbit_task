@@ -33,8 +33,8 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
   }, [searchQuery]);
 
   const toggleUserSelection = (userToToggle) => {
-    if (selectedUsers.find(u => u._id === userToToggle._id)) {
-      setSelectedUsers(selectedUsers.filter(u => u._id !== userToToggle._id));
+    if (selectedUsers.find(u => u.id === userToToggle.id)) {
+      setSelectedUsers(selectedUsers.filter(u => u.id !== userToToggle.id));
     } else {
       setSelectedUsers([...selectedUsers, userToToggle]);
     }
@@ -48,7 +48,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
 
     setIsLoading(true);
     try {
-      const participantIds = selectedUsers.map(u => u._id);
+      const participantIds = selectedUsers.map(u => u.id);
       const { data } = await api.post('/groups', {
         name: groupName,
         participants: participantIds
@@ -94,7 +94,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
           <div>
             <input
               type="text"
-              placeholder="Group Subject"
+              placeholder="Group Name"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               style={{
@@ -131,7 +131,7 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {selectedUsers.map(u => (
-              <div key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--accent)', padding: '4px 12px', borderRadius: '16px' }}>
+              <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--accent)', padding: '4px 12px', borderRadius: '16px' }}>
                 <span style={{ color: 'white', fontSize: '12px' }}>{u.username}</span>
                 <X size={14} color="white" cursor="pointer" onClick={() => toggleUserSelection(u)} />
               </div>
@@ -140,9 +140,9 @@ const CreateGroupModal = ({ onClose, onGroupCreated }) => {
 
           <div style={{ flex: 1, minHeight: '200px', maxHeight: '200px', overflowY: 'auto' }}>
             {searchResults.map(user => {
-              const isSelected = selectedUsers.some(u => u._id === user._id);
+              const isSelected = selectedUsers.some(u => u.id === user.id);
               return (
-                <div key={user._id} onClick={() => toggleUserSelection(user)} style={{
+                <div key={user.id} onClick={() => toggleUserSelection(user)} style={{
                   display: 'flex', alignItems: 'center', padding: '12px', cursor: 'pointer',
                   borderBottom: '1px solid var(--divider)',
                   backgroundColor: isSelected ? 'rgba(0, 168, 132, 0.1)' : 'transparent'

@@ -44,7 +44,7 @@ const GroupInfoModal = ({ groupId, onClose, onGroupUpdated }) => {
         if (data.success) {
           // Filter out existing participants
           const existingIds = group?.participants.map(p => p._id.toString()) || [];
-          setSearchResults(data.data.filter(u => !existingIds.includes(u._id.toString())));
+          setSearchResults(data.data.filter(u => !existingIds.includes(u.id.toString())));
         }
       } catch (error) {
         console.error('Search error', error);
@@ -61,8 +61,7 @@ const GroupInfoModal = ({ groupId, onClose, onGroupUpdated }) => {
   const handleAddUser = async (userId) => {
     try {
       await api.put(`/groups/${groupId}/add`, { userId });
-      setSearchQuery('');
-      setSearchResults([]);
+      // Removed clearing search query to allow adding multiple people easily
       fetchGroupDetails();
       onGroupUpdated();
     } catch (e) {
@@ -145,9 +144,9 @@ const GroupInfoModal = ({ groupId, onClose, onGroupUpdated }) => {
               {isSearching && searchResults.length > 0 && (
                 <div style={{ marginTop: '8px', border: '1px solid var(--divider)', borderRadius: '8px', overflow: 'hidden' }}>
                   {searchResults.map(u => (
-                    <div key={u._id} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--divider)' }}>
+                    <div key={u.id} style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--divider)' }}>
                       <span style={{ color: 'var(--text)', flex: 1 }}>{u.username}</span>
-                      <UserPlus size={18} color="var(--accent)" cursor="pointer" onClick={() => handleAddUser(u._id)} />
+                      <UserPlus size={18} color="var(--accent)" cursor="pointer" onClick={() => handleAddUser(u.id)} />
                     </div>
                   ))}
                 </div>

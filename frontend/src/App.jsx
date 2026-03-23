@@ -19,6 +19,7 @@ const PublicRoute = ({ children }) => {
 };
 
 function App() {
+  const { user } = useAuth();
   return (
     <Router>
       <div className="app-container" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>

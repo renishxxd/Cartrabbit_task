@@ -66,12 +66,14 @@ export const sendMessage = asyncHandler(async (req, res) => {
 
     const messageObj = {
       id: newMessage._id,
+      conversationId: conversation._id.toString(),
       text: newMessage.text,
       mediaUrl: newMessage.mediaUrl,
       mediaType: newMessage.mediaType,
       mediaMetadata: newMessage.mediaMetadata,
       senderId: newMessage.senderId,
       status: newMessage.status,
+      isSystemMessage: newMessage.isSystemMessage || false,
       isEdited: newMessage.isEdited || false,
       isDeleted: newMessage.isDeleted || false,
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -129,6 +131,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     mediaMetadata: msg.mediaMetadata,
     senderId: msg.senderId,
     status: msg.status,
+    isSystemMessage: msg.isSystemMessage || false,
     isEdited: msg.isEdited || false,
     isDeleted: msg.isDeleted || false,
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
