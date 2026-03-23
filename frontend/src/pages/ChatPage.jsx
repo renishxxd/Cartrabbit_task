@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import ChatWindow from '../components/ChatWindow';
 import ContactInfo from '../components/ContactInfo';
+import GroupInfoModal from '../components/GroupInfoModal';
+import StatusTab from '../components/StatusTab';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +14,8 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0); 
-  const [showContactInfo, setShowContactInfo] = useState(false); // New state
+  const [showContactInfo, setShowContactInfo] = useState(false);
+  const [showStatusTab, setShowStatusTab] = useState(false);
   
   const { socket } = useSocket();
   const { logout, user } = useAuth();
@@ -172,29 +175,46 @@ const ChatPage = () => {
 
       {/* Main Chat Layout Container */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        <Sidebar 
-          activeChat={activeChat} 
-          setActiveChat={setActiveChat} 
-          onLogout={logout}
-          refreshTrigger={refreshTrigger}
-        />
-        <ChatWindow 
-          activeChat={activeChat} 
-          setActiveChat={setActiveChat}
-          messages={messages}
-          setMessages={setMessages}
-          inputText={inputText}
-          setInputText={setInputText}
-          handleSend={handleSend}
-          setRefreshTrigger={setRefreshTrigger}
-          setShowContactInfo={setShowContactInfo}
-        />
-        {showContactInfo && activeChat && (
-          <ContactInfo 
-            activeChat={activeChat} 
-            onClose={() => setShowContactInfo(false)}
-            setRefreshTrigger={setRefreshTrigger}
-          />
+        {showStatusTab ? (
+          <StatusTab onBack={() => setShowStatusTab(false)} />
+        ) : (
+          <>
+            <Sidebar 
+              activeChat={activeChat} 
+              setActiveChat={setActiveChat} 
+              onLogout={logout}
+              refreshTrigger={refreshTrigger}
+              onOpenStatus={() => setShowStatusTab(true)}
+            />
+            <ChatWindow 
+              activeChat={activeChat} 
+              setActiveChat={setActiveChat}
+              messages={messages}
+              setMessages={setMessages}
+              inputText={inputText}
+              setInputText={setInputText}
+              handleSend={handleSend}
+              setRefreshTrigger={setRefreshTrigger}
+              setShowContactInfo={setShowContactInfo}
+            />
+            {showContactInfo && activeChat && !activeChat.isGroup && (
+              <ContactInfo 
+                activeChat={activeChat} 
+                onClose={() => setShowContactInfo(false)}
+                setRefreshTrigger={setRefreshTrigger}
+              />
+            )}
+            {showContactInfo && activeChat && activeChat.isGroup && (
+              <GroupInfoModal 
+                groupId={activeChat.id} 
+                onClose={() => setShowContactInfo(false)}
+                onGroupUpdated={(left) => {
+                  setRefreshTrigger(prev => prev + 1);
+                  if (left) setActiveChat(null);
+                }}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

@@ -7,13 +7,11 @@ import api from '../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    otp: ''
+    confirmPassword: ''
   });
   
   const [errors, setErrors] = useState({});
@@ -52,16 +50,6 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateStep2 = () => {
-    const newErrors = {};
-    if (!formData.otp) {
-      newErrors.otp = 'OTP is required';
-    } else if (formData.otp.length !== 6) {
-      newErrors.otp = 'OTP must be 6 digits';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
 
   const handleChange = (e) => {
     setFormData({
@@ -77,36 +65,10 @@ const Register = () => {
     setApiError('');
   };
 
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
-    if (!validateStep1()) return;
-
-    setIsLoading(true);
-    setApiError('');
-    setSuccessMsg('');
-
-    try {
-      const { data } = await api.post('/auth/send-otp', {
-        username: formData.username,
-        email: formData.email,
-      });
-      
-      setSuccessMsg(data.message || 'OTP sent to your email!');
-      setStep(2);
-    } catch (error) {
-      setApiError(
-        error.response && error.response.data.message
-          ? error.response.data.message
-          : 'Failed to send OTP. Please try again.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    if (!validateStep2()) return;
+    if (!validateStep1()) return;
 
     setIsLoading(true);
     setApiError('');
@@ -116,8 +78,7 @@ const Register = () => {
       const { data } = await api.post('/auth/register', {
         username: formData.username,
         email: formData.email,
-        password: formData.password,
-        otp: formData.otp
+        password: formData.password
       });
       
       setSuccessMsg('Registration successful! Redirecting to login...');
@@ -147,95 +108,50 @@ const Register = () => {
   );
 
   return (
-    <AuthCard title={step === 1 ? "Create Account" : "Verify Email"} footer={footer} error={apiError} success={successMsg}>
-      {step === 1 ? (
-        <form onSubmit={handleSendOtp}>
-          <InputField
-            label="Username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            placeholder="Choose a username"
-            error={errors.username}
-          />
-          <InputField
-            label="Email Address"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter your email"
-            error={errors.email}
-          />
-          <InputField
-            label="Password"
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            placeholder="Create a password"
-            error={errors.password}
-          />
-          <InputField
-            label="Confirm Password"
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            placeholder="Confirm your password"
-            error={errors.confirmPassword}
-          />
-          
-          <div style={{ marginTop: '24px' }}>
-            <SubmitButton isLoading={isLoading}>
-              Send Verification Code
-            </SubmitButton>
-          </div>
-        </form>
-      ) : (
-        <form onSubmit={handleRegister}>
-          <p style={{ marginBottom: '20px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-            We've sent a 6-digit verification code to <strong>{formData.email}</strong>. Please enter it below.
-          </p>
-          <InputField
-            label="Verification Code (OTP)"
-            name="otp"
-            value={formData.otp}
-            onChange={handleChange}
-            placeholder="Enter 6-digit code"
-            error={errors.otp}
-            maxLength="6"
-          />
-          
-          <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                setSuccessMsg('');
-                setApiError('');
-              }}
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '8px',
-                backgroundColor: 'transparent',
-                border: '1px solid var(--text-secondary)',
-                color: 'var(--text)',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              Back
-            </button>
-            <div style={{ flex: 2 }}>
-              <SubmitButton isLoading={isLoading}>
-                Verify & Register
-              </SubmitButton>
-            </div>
-          </div>
-        </form>
-      )}
+    <AuthCard title="Create Account" footer={footer} error={apiError} success={successMsg}>
+      <form onSubmit={handleRegister}>
+        <InputField
+          label="Username"
+          name="username"
+          value={formData.username}
+          onChange={handleChange}
+          placeholder="Choose a username"
+          error={errors.username}
+        />
+        <InputField
+          label="Email Address"
+          type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          placeholder="Enter your email"
+          error={errors.email}
+        />
+        <InputField
+          label="Password"
+          type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
+          placeholder="Create a password"
+          error={errors.password}
+        />
+        <InputField
+          label="Confirm Password"
+          type="password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          placeholder="Confirm your password"
+          error={errors.confirmPassword}
+        />
+        
+        <div style={{ marginTop: '24px' }}>
+          <SubmitButton isLoading={isLoading}>
+            Register
+          </SubmitButton>
+        </div>
+      </form>
     </AuthCard>
   );
 };

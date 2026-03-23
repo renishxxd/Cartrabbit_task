@@ -55,6 +55,49 @@ io.on('connection', (socket) => {
       delete userSocketMap[userId];
     }
   });
+
+  // WebRTC Call Signaling
+  socket.on('call-user', (data) => {
+    // data: { userToCall: userId, signalData: offer, from: callerId, name: callerName, avatar: callerAvatar }
+    const receiverSocketId = getReceiverSocketId(data.userToCall);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('call-made', {
+        signal: data.signalData,
+        from: data.from,
+        name: data.name,
+        avatar: data.avatar
+      });
+    }
+  });
+
+  socket.on('answer-call', (data) => {
+    // data: { to: callerId, signal: answer }
+    const callerSocketId = getReceiverSocketId(data.to);
+    if (callerSocketId) {
+      io.to(callerSocketId).emit('call-answered', data.signal);
+    }
+  });
+
+  socket.on('ice-candidate', (data) => {
+    const receiverSocketId = getReceiverSocketId(data.to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('ice-candidate', data.candidate);
+    }
+  });
+
+  socket.on('end-call', (data) => {
+    const receiverSocketId = getReceiverSocketId(data.to);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit('call-ended');
+    }
+  });
+
+  socket.on('reject-call', (data) => {
+    const callerSocketId = getReceiverSocketId(data.to);
+    if (callerSocketId) {
+      io.to(callerSocketId).emit('call-rejected');
+    }
+  });
 });
 
 export { app, io, server };

@@ -8,6 +8,8 @@ import { app, server } from './socket/socket.js'; // Import app and server from 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
+import groupRoutes from './routes/groupRoutes.js';
+import statusRoutes from './routes/statusRoutes.js';
 
 dotenv.config();
 
@@ -25,6 +27,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/status', statusRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

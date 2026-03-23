@@ -12,32 +12,43 @@ export const sendMessage = asyncHandler(async (req, res) => {
   const { id: receiverId } = req.params;
   const senderId = req.user._id;
 
-  // CHECK BLOCKLIST
-  const receiverData = await User.findById(receiverId);
-  if (receiverData && receiverData.blockedUsers.includes(senderId)) {
-    res.status(403);
-    throw new Error('You have been blocked by this user');
-  }
-
-  const senderData = await User.findById(senderId);
-  if (senderData && senderData.blockedUsers.includes(receiverId)) {
-    res.status(403);
-    throw new Error('You have blocked this user. Unblock to send a message');
-  }
-
   if (!text && !mediaUrl) {
     res.status(400);
     throw new Error('Message text or media is required');
   }
 
-  let conversation = await Conversation.findOne({
-    participants: { $all: [senderId, receiverId] },
-  });
+  // Check if id is a group conversation
+  let conversation = null;
+  
+  if (receiverId.length === 24) { // Valid ObjectId
+      conversation = await Conversation.findOne({ _id: receiverId, isGroup: true });
+  }
 
   if (!conversation) {
-    conversation = await Conversation.create({
-      participants: [senderId, receiverId],
+    // 1-on-1 chat logic
+    const receiverData = await User.findById(receiverId);
+    if (receiverData && receiverData.blockedUsers && receiverData.blockedUsers.includes(senderId)) {
+      res.status(403);
+      throw new Error('You have been blocked by this user');
+    }
+
+    const senderData = await User.findById(senderId);
+    if (senderData && senderData.blockedUsers && senderData.blockedUsers.includes(receiverId)) {
+      res.status(403);
+      throw new Error('You have blocked this user. Unblock to send a message');
+    }
+
+    conversation = await Conversation.findOne({
+      participants: { $all: [senderId, receiverId] },
+      isGroup: false
     });
+
+    if (!conversation) {
+      conversation = await Conversation.create({
+        participants: [senderId, receiverId],
+        isGroup: false
+      });
+    }
   }
 
   const newMessage = new Message({
@@ -67,10 +78,16 @@ export const sendMessage = asyncHandler(async (req, res) => {
       createdAt: newMessage.createdAt
     };
 
-    const receiverSocketId = getReceiverSocketId(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("newMessage", messageObj);
-    }
+    // Emit to all participants
+    conversation.participants.forEach((participantId) => {
+      // Don't emit back to sender, they add it locally
+      if (participantId.toString() !== senderId.toString()) {
+        const receiverSocketId = getReceiverSocketId(participantId.toString());
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("newMessage", messageObj);
+        }
+      }
+    });
 
     res.status(201).json({ success: true, data: messageObj });
   } else {
@@ -86,9 +103,17 @@ export const getMessages = asyncHandler(async (req, res) => {
   const { id: userToChatId } = req.params;
   const senderId = req.user._id;
 
-  const conversation = await Conversation.findOne({
-    participants: { $all: [senderId, userToChatId] },
-  });
+  let conversation = null;
+  if (userToChatId.length === 24) {
+    conversation = await Conversation.findOne({ _id: userToChatId, isGroup: true });
+  }
+
+  if (!conversation) {
+    conversation = await Conversation.findOne({
+      participants: { $all: [senderId, userToChatId] },
+      isGroup: false
+    });
+  }
 
   if (!conversation) {
     return res.status(200).json({ success: true, data: [] });
@@ -132,28 +157,44 @@ export const getConversations = asyncHandler(async (req, res) => {
 
   const formattedConversationsRaw = await Promise.all(
     conversations.map(async (conv) => {
-      const validParticipants = conv.participants.filter(p => p != null);
-      const otherParticipant = validParticipants.find(p => p._id.toString() !== userId.toString());
-      
-      if (!otherParticipant) return null;
-
       const unreadCount = await Message.countDocuments({
         conversationId: conv._id,
         senderId: { $ne: userId },
         read: false
       });
-      
-      return {
-        id: otherParticipant._id,
-        username: otherParticipant.username,
-        avatar: otherParticipant.avatar,
-        about: otherParticipant.about,
-        lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
-        lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-        updatedAt: conv.updatedAt,
-        unreadCount: unreadCount,
-        isOnline: false
-      };
+
+      if (conv.isGroup) {
+        return {
+          id: conv._id,
+          username: conv.groupName,
+          avatar: conv.groupAvatar || 'https://ui-avatars.com/api/?name=Group',
+          about: 'Group Chat',
+          isGroup: true,
+          lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
+          lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          updatedAt: conv.updatedAt,
+          unreadCount: unreadCount,
+          isOnline: false
+        };
+      } else {
+        const validParticipants = conv.participants.filter(p => p != null);
+        const otherParticipant = validParticipants.find(p => p._id.toString() !== userId.toString());
+        
+        if (!otherParticipant) return null;
+
+        return {
+          id: otherParticipant._id,
+          username: otherParticipant.username,
+          avatar: otherParticipant.avatar,
+          about: otherParticipant.about,
+          isGroup: false,
+          lastMessage: conv.lastMessage ? conv.lastMessage.text : 'Start chatting',
+          lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          updatedAt: conv.updatedAt,
+          unreadCount: unreadCount,
+          isOnline: false
+        };
+      }
     })
   );
 
@@ -169,9 +210,17 @@ export const markConversationsAsRead = asyncHandler(async (req, res) => {
   const { id: userToChatId } = req.params;
   const userId = req.user._id;
 
-  const conversation = await Conversation.findOne({
-    participants: { $all: [userId, userToChatId] },
-  });
+  let conversation = null;
+  if (userToChatId.length === 24) {
+    conversation = await Conversation.findOne({ _id: userToChatId, isGroup: true });
+  }
+
+  if (!conversation) {
+    conversation = await Conversation.findOne({
+      participants: { $all: [userId, userToChatId] },
+      isGroup: false
+    });
+  }
 
   if (!conversation) {
     return res.status(200).json({ success: true, message: 'No conversation found' });

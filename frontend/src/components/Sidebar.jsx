@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, LogOut } from 'lucide-react';
+import { User, Search, LogOut, Users, CircleDashed } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import UserProfile from './UserProfile';
+import CreateGroupModal from './CreateGroupModal';
 
-const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
+const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenStatus }) => {
   const [conversations, setConversations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [localRefresh, setLocalRefresh] = useState(0);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -24,7 +27,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
       }
     };
     fetchConversations();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, localRefresh]);
 
   useEffect(() => {
     const searchUsers = async () => {
@@ -76,6 +79,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
     }}>
       {/* UserProfile slide-over */}
       {showProfile && <UserProfile onClose={() => setShowProfile(false)} />}
+      {showCreateGroup && <CreateGroupModal onClose={() => setShowCreateGroup(false)} onGroupCreated={() => setLocalRefresh(prev => prev + 1)} />}
 
       {/* Sidebar Header */}
       <div style={{
@@ -110,9 +114,17 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger }) => {
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: '500', color: 'var(--text)', margin: 0 }}>Chats</h2>
         </div>
-        <button onClick={onLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Logout">
-          <LogOut size={20} />
-        </button>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button onClick={onOpenStatus} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Status">
+            <CircleDashed size={20} />
+          </button>
+          <button onClick={() => setShowCreateGroup(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="New Group">
+            <Users size={20} />
+          </button>
+          <button onClick={onLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Logout">
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

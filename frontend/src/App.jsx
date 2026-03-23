@@ -3,6 +3,7 @@ import { MessageCircle } from 'lucide-react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatPage from './pages/ChatPage';
+import CallModal from './components/CallModal';
 import { useAuth } from './context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
@@ -53,6 +54,9 @@ function App() {
             <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
           </Routes>
         </div>
+
+        {/* Call Modal globally available */}
+        {user && <CallModal />}
 
       </div>
     </Router>

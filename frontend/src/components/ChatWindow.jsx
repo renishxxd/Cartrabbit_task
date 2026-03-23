@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
-import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2 } from 'lucide-react';
+import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -294,6 +294,20 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
               setShowDropdown(false);
             }}
           />
+          {!activeChat.isGroup && (
+            <>
+              <Video 
+                size={20} 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary)' }}
+                onClick={() => window.makeCall && window.makeCall(activeChat.id, true, activeChat.username)}
+              />
+              <Phone 
+                size={20} 
+                style={{ cursor: 'pointer', color: 'var(--text-secondary)' }}
+                onClick={() => window.makeCall && window.makeCall(activeChat.id, false, activeChat.username)}
+              />
+            </>
+          )}
           <MoreVertical 
             size={20} 
             style={{ cursor: 'pointer' }} 
@@ -314,10 +328,14 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
               display: 'flex',
               flexDirection: 'column'
             }}>
-              <DropdownItem icon={<Info size={16}/>} text="Contact info" onClick={() => { setShowContactInfo(true); setShowDropdown(false); }} />
+              <DropdownItem icon={<Info size={16}/>} text={activeChat.isGroup ? "Group info" : "Contact info"} onClick={() => { setShowContactInfo(true); setShowDropdown(false); }} />
               <DropdownItem icon={<CheckSquare size={16}/>} text="Select messages" onClick={() => { setIsSelecting(true); setShowDropdown(false); }} />
               <DropdownItem icon={<Clock size={16}/>} text="Disappearing messages" onClick={handleDisappearing} />
-              <DropdownItem icon={<Heart size={16}/>} text="Add to favourites" onClick={handleFavourite} />
+              
+              {!activeChat.isGroup && (
+                <DropdownItem icon={<Heart size={16}/>} text="Add to favourites" onClick={handleFavourite} />
+              )}
+              
               <DropdownItem 
                 icon={<XCircle size={16}/>} 
                 text="Close chat" 
@@ -329,10 +347,18 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
               
               <div style={{ height: '1px', backgroundColor: 'var(--divider)', margin: '8px 0' }} />
               
-              <DropdownItem icon={<ThumbsDown size={16}/>} text="Report" onClick={handleReportUser} />
-              <DropdownItem icon={<Slash size={16}/>} text="Block" onClick={handleBlockUser} />
+              {!activeChat.isGroup && (
+                <>
+                  <DropdownItem icon={<ThumbsDown size={16}/>} text="Report" onClick={handleReportUser} />
+                  <DropdownItem icon={<Slash size={16}/>} text="Block" onClick={handleBlockUser} />
+                </>
+              )}
+
               <DropdownItem icon={<MinusCircle size={16}/>} text="Clear chat" onClick={handleClearChat} />
-              <DropdownItem icon={<Trash2 size={16}/>} text="Delete chat" onClick={handleDeleteChat} />
+              
+              {!activeChat.isGroup && (
+                <DropdownItem icon={<Trash2 size={16}/>} text="Delete chat" onClick={handleDeleteChat} />
+              )}
             </div>
           )}
         </div>

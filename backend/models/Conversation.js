@@ -17,6 +17,22 @@ const conversationSchema = new mongoose.Schema(
       type: Number,
       default: 0, // 0 = disabled, otherwise seconds
     },
+    isGroup: {
+      type: Boolean,
+      default: false,
+    },
+    groupName: {
+      type: String,
+      trim: true,
+    },
+    groupAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    groupAvatar: {
+      type: String,
+      default: '',
+    },
   },
   { timestamps: true }
 );
