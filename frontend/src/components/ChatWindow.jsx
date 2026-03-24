@@ -359,13 +359,9 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
                 <>
                   <DropdownItem icon={<ThumbsDown size={16}/>} text="Report" onClick={handleReportUser} />
                   <DropdownItem icon={<Slash size={16}/>} text="Block" onClick={handleBlockUser} />
+                  <DropdownItem icon={<MinusCircle size={16}/>} text="Clear chat" onClick={handleClearChat} />
+                  <DropdownItem icon={<Trash2 size={16}/>} text="Delete chat" onClick={handleDeleteChat} />
                 </>
-              )}
-
-              <DropdownItem icon={<MinusCircle size={16}/>} text="Clear chat" onClick={handleClearChat} />
-              
-              {!activeChat.isGroup && (
-                <DropdownItem icon={<Trash2 size={16}/>} text="Delete chat" onClick={handleDeleteChat} />
               )}
             </div>
           )}
