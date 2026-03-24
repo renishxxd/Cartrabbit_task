@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { FileText, Download, Check, CheckCheck, Pencil, Trash2, X, Smile } from 'lucide-react';
+import { FileText, Download, Check, CheckCheck, Pencil, Trash2, X, Smile, Pin } from 'lucide-react';
 
 const getDownloadUrl = (url) => {
   if (!url) return '';
   return url.replace('/upload/', '/upload/fl_attachment/');
 };
 
-const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete, onReact }) => {
+const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete, onReact, onPin }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -27,6 +27,7 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
 
   return (
     <div 
+      id={`msg-${message.id}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
@@ -94,6 +95,7 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
             zIndex: 10
           }}>
             <Smile size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => setShowReactions(!showReactions)} />
+            <Pin size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => onPin(message.id)} />
             {isOwn && <Pencil size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={startEditing} />}
             {isOwn && <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => onDelete(message.id)} />}
             
@@ -264,6 +266,7 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
           gap: '4px',
           marginTop: '2px'
         }}>
+          {message.isPinned && <Pin size={12} color="var(--text-secondary)" style={{ marginRight: '2px', transform: 'rotate(45deg)' }} />}
           <span style={{ 
             fontSize: '11px', 
             color: 'var(--text-secondary)'

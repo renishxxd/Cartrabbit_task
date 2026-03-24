@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
-import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft, Archive } from 'lucide-react';
+import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft, Archive, Pin } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
@@ -73,12 +73,20 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
       }
     };
 
+    const handleMessagePinned = (data) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === data.messageId ? { ...msg, isPinned: data.isPinned } : msg
+      ));
+    };
+
     socket.on('user_typing', handleTyping);
     socket.on('user_stopped_typing', handleStopTyping);
+    socket.on('message_pinned', handleMessagePinned);
 
     return () => {
       socket.off('user_typing', handleTyping);
       socket.off('user_stopped_typing', handleStopTyping);
+      socket.off('message_pinned', handleMessagePinned);
     };
   }, [socket, activeChat]);
 
@@ -218,6 +226,19 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
       }
     } catch (e) {
       alert('Failed to add reaction');
+    }
+  };
+
+  const handlePinSubmit = async (messageId) => {
+    try {
+      const { data } = await api.put(`/messages/pin/${messageId}`);
+      if (data.success) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, isPinned: data.isPinned } : msg
+        ));
+      }
+    } catch (e) {
+      alert('Failed to pin message');
     }
   };
 
@@ -469,6 +490,44 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
         </div>
       )}
 
+      {/* Pinned Message Banner */}
+      {filteredMessages.some(m => m.isPinned) && !isSearching && (
+        <div 
+          onClick={() => {
+            const pinnedMsgs = filteredMessages.filter(m => m.isPinned);
+            const latestPinned = pinnedMsgs[pinnedMsgs.length - 1];
+            if (latestPinned) {
+              document.getElementById(`msg-${latestPinned.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          style={{
+            backgroundColor: 'var(--bg-sidebar)',
+            padding: '10px 16px',
+            borderBottom: '1px solid var(--divider)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            cursor: 'pointer',
+            zIndex: 1,
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-chat)'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-sidebar)'}
+        >
+          <Pin size={16} color="var(--text-secondary)" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--accent)', fontWeight: '500' }}>Pinned Message</p>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {(() => {
+                const pinnedMsgs = filteredMessages.filter(m => m.isPinned);
+                const latest = pinnedMsgs[pinnedMsgs.length - 1];
+                return latest.text || (latest.mediaType ? `[${latest.mediaType.toUpperCase()}] Pinned media` : 'Pinned message');
+              })()}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Messages Area */}
       <div style={{ 
         flex: 1, 
@@ -509,6 +568,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
                 onEditSubmit={handleEditSubmit}
                 onDelete={handleDeleteSubmit}
                 onReact={handleReactSubmit}
+                onPin={handlePinSubmit}
               />
             );
           })

@@ -77,9 +77,9 @@ export const sendMessage = asyncHandler(async (req, res) => {
         avatar: req.user.avatar
       },
       status: newMessage.status,
-      isSystemMessage: newMessage.isSystemMessage || false,
       isEdited: newMessage.isEdited || false,
       isDeleted: newMessage.isDeleted || false,
+      isPinned: newMessage.isPinned || false,
       reactions: [],
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: newMessage.createdAt
@@ -138,10 +138,10 @@ export const getMessages = asyncHandler(async (req, res) => {
     mediaMetadata: msg.mediaMetadata,
     senderId: msg.senderId && msg.senderId._id ? msg.senderId._id : msg.senderId,
     sender: msg.senderId && msg.senderId.username ? { username: msg.senderId.username, avatar: msg.senderId.avatar } : null,
-    status: msg.status,
     isSystemMessage: msg.isSystemMessage || false,
     isEdited: msg.isEdited || false,
     isDeleted: msg.isDeleted || false,
+    isPinned: msg.isPinned || false,
     reactions: msg.reactions || [],
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     createdAt: msg.createdAt
@@ -493,4 +493,42 @@ export const reactToMessage = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json({ success: true, messageId: message._id, reactions: message.reactions });
+});
+
+// @desc    Toggle pin status of a message
+// @route   PUT /api/messages/pin/:id
+// @access  Private
+export const togglePinMessage = asyncHandler(async (req, res) => {
+  const { id: messageId } = req.params;
+  const userId = req.user._id;
+
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    res.status(404);
+    throw new Error('Message not found');
+  }
+
+  // Toggle pin
+  message.isPinned = !message.isPinned;
+  await message.save();
+
+  // Find participants to emit socket event
+  const conversation = await Conversation.findById(message.conversationId);
+  if (conversation) {
+    conversation.participants.forEach((participantId) => {
+      // We can emit to sender as well if we want, or do local state update
+      if (participantId.toString() !== userId.toString()) {
+        const receiverSocketId = getReceiverSocketId(participantId.toString());
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit('message_pinned', {
+            messageId: message._id,
+            isPinned: message.isPinned
+          });
+        }
+      }
+    });
+  }
+
+  res.status(200).json({ success: true, messageId: message._id, isPinned: message.isPinned });
 });

@@ -40,8 +40,11 @@ const messageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // Useful for read receipts later
     read: {
+      type: Boolean,
+      default: false,
+    },
+    isPinned: {
       type: Boolean,
       default: false,
     },

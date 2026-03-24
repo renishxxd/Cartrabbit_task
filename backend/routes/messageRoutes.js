@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
-import { sendMessage, getMessages, getConversations, clearChat, deleteChat, toggleDisappearingMessages, uploadMediaFile, markConversationsAsRead, editMessage, deleteMessageForEveryone, reactToMessage } from '../controllers/messageController.js';
+import { sendMessage, getMessages, getConversations, clearChat, deleteChat, toggleDisappearingMessages, uploadMediaFile, markConversationsAsRead, editMessage, deleteMessageForEveryone, reactToMessage, togglePinMessage } from '../controllers/messageController.js';
 import { uploadMedia } from '../utils/cloudinary.js';
 
 const router = express.Router();
@@ -12,6 +12,7 @@ router.post('/upload', protect, uploadMedia.single('media'), uploadMediaFile);
 router.put('/mark-read/:id', protect, markConversationsAsRead);
 router.put('/edit/:id', protect, editMessage);
 router.put('/react/:id', protect, reactToMessage);
+router.put('/pin/:id', protect, togglePinMessage);
 router.delete('/delete-for-everyone/:id', protect, deleteMessageForEveryone);
 router.delete('/clear/:id', protect, clearChat);
 router.delete('/delete/:id', protect, deleteChat);
