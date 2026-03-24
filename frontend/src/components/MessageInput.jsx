@@ -2,13 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Paperclip, Smile, X, Loader } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import api from '../services/api';
+import { useSocket } from '../services/useSocket';
 
-const MessageInput = ({ inputText, setInputText, handleSend }) => {
+const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
+  const { socket } = useSocket();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const pickerRef = useRef(null);
   const fileInputRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -75,6 +79,32 @@ const MessageInput = ({ inputText, setInputText, handleSend }) => {
     const textToSend = inputText.trim();
     setInputText(''); 
     handleSend(textToSend, mediaData);
+    
+    // Stop typing immediately when sent
+    if (isTyping && socket && activeChat) {
+      socket.emit('stop_typing', { to: activeChat.id, isGroup: activeChat.isGroup });
+      setIsTyping(false);
+      clearTimeout(typingTimeoutRef.current);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setInputText(e.target.value);
+
+    // Typing Indicator Logic
+    if (socket && activeChat) {
+      if (!isTyping) {
+        setIsTyping(true);
+        socket.emit('typing', { to: activeChat.id, isGroup: activeChat.isGroup });
+      }
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        socket.emit('stop_typing', { to: activeChat.id, isGroup: activeChat.isGroup });
+      }, 2000);
+    }
   };
 
   const onKeyDown = (e) => {
@@ -158,7 +188,7 @@ const MessageInput = ({ inputText, setInputText, handleSend }) => {
         <input 
           type="text"
           value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
+          onChange={handleInputChange}
           onKeyDown={onKeyDown}
           placeholder="Type a message"
           style={{

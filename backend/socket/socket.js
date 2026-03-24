@@ -98,6 +98,26 @@ io.on('connection', (socket) => {
       io.to(callerSocketId).emit('call-rejected');
     }
   });
+
+  // Typing Indicator (1-on-1 for now, or group if rooms were used)
+  socket.on('typing', (data) => {
+    // data: { to: conversationId/userId, isGroup: boolean }
+    if (!data.isGroup) {
+      const receiverSocketId = getReceiverSocketId(data.to);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('user_typing', { from: userId });
+      }
+    }
+  });
+
+  socket.on('stop_typing', (data) => {
+    if (!data.isGroup) {
+      const receiverSocketId = getReceiverSocketId(data.to);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('user_stopped_typing', { from: userId });
+      }
+    }
+  });
 });
 
 export { app, io, server };

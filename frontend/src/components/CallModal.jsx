@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from 'lucide-react';
 import { useSocket } from '../services/useSocket';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 
 const CallModal = () => {
   const { socket } = useSocket();
@@ -9,6 +10,8 @@ const CallModal = () => {
 
   const [callState, setCallState] = useState('idle'); // idle, calling, ringing, connected
   const [caller, setCaller] = useState(null); // { id, name, avatar }
+  const [callStartTime, setCallStartTime] = useState(null);
+  const [isVideoCall, setIsVideoCall] = useState(false);
   
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -25,11 +28,13 @@ const CallModal = () => {
     socket.on('call-made', async (data) => {
        setCaller({ id: data.from, name: data.name, avatar: data.avatar });
        setCallState('ringing');
+       setIsVideoCall(data.isVideo === true);
        window.pendingOffer = data.signal; 
     });
 
     socket.on('call-answered', async (signal) => {
       setCallState('connected');
+      setCallStartTime(new Date());
       if (peerConnectionRef.current) {
         await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(signal));
       }
@@ -46,12 +51,24 @@ const CallModal = () => {
     });
 
     socket.on('call-ended', () => {
+      if (callState === 'calling') {
+        // We cancelled the call before it was answered
+      } else if (callState === 'connected') {
+        logCall(caller?.id, 'completed');
+      }
       endCallCleanup();
     });
 
     socket.on('call-rejected', () => {
       alert("Call rejected");
+      logCall(caller?.id, 'rejected');
       endCallCleanup();
+    });
+
+    socket.on('call-missed', () => {
+      if (callState === 'ringing') {
+        endCallCleanup();
+      }
     });
 
     return () => {
@@ -60,8 +77,9 @@ const CallModal = () => {
       socket.off('ice-candidate');
       socket.off('call-ended');
       socket.off('call-rejected');
+      socket.off('call-missed');
     };
-  }, [socket]);
+  }, [socket, callState, caller, isVideoCall, callStartTime]);
 
   useEffect(() => {
     window.makeCall = async (userToCallId, isVideo = true, userName) => {
@@ -69,6 +87,8 @@ const CallModal = () => {
       
       setCallState('calling');
       setCaller({ id: userToCallId, name: userName || 'Calling...', avatar: '' });
+      setIsVideoCall(isVideo);
+      setCallStartTime(null);
 
       const stream = await navigator.mediaDevices.getUserMedia({ video: isVideo, audio: true });
       setLocalStream(stream);
@@ -85,7 +105,8 @@ const CallModal = () => {
         signalData: offer,
         from: user._id,
         name: user.username,
-        avatar: user.avatar
+        avatar: user.avatar,
+        isVideo: isVideo
       });
     };
   }, [socket, callState, user]);
@@ -115,7 +136,8 @@ const CallModal = () => {
 
   const answerCall = async () => {
     setCallState('connected');
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setCallStartTime(new Date());
+    const stream = await navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true });
     setLocalStream(stream);
     if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
@@ -131,14 +153,38 @@ const CallModal = () => {
 
   const rejectCall = () => {
     socket.emit('reject-call', { to: caller.id });
+    // Log missed/rejected from receiver's perspective is tricky since receiver doesn't own the Call log, caller does.
+    // So we just rely on the Caller's side.
     endCallCleanup();
   };
 
   const endCall = () => {
     if (caller?.id) {
-      socket.emit('end-call', { to: caller.id });
+      if (callState === 'calling') {
+        socket.emit('end-call', { to: caller.id });
+        logCall(caller.id, 'missed');
+      } else {
+        socket.emit('end-call', { to: caller.id });
+        logCall(caller.id, 'completed');
+      }
     }
     endCallCleanup();
+  };
+
+  const logCall = async (receiverId, status) => {
+    if (!receiverId) return;
+    try {
+      const duration = callStartTime ? Math.floor((new Date() - callStartTime) / 1000) : 0;
+      await api.post('/calls', {
+        receiverId,
+        callType: isVideoCall ? 'video' : 'audio',
+        status,
+        duration,
+        startedAt: callStartTime
+      });
+    } catch (e) {
+      console.error('Failed to log call', e);
+    }
   };
 
   const endCallCleanup = () => {
@@ -153,6 +199,7 @@ const CallModal = () => {
     setRemoteStream(null);
     setCallState('idle');
     setCaller(null);
+    setCallStartTime(null);
     window.pendingOffer = null;
   };
 

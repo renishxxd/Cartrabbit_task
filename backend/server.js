@@ -10,6 +10,7 @@ import userRoutes from './routes/userRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import groupRoutes from './routes/groupRoutes.js';
 import statusRoutes from './routes/statusRoutes.js';
+import callRoutes from './routes/callRoutes.js';
 
 dotenv.config();
 
@@ -29,6 +30,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/status', statusRoutes);
+app.use('/api/calls', callRoutes);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

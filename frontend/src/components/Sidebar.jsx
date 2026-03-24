@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, LogOut, Users, CircleDashed } from 'lucide-react';
+import { User, Search, LogOut, Users, CircleDashed, Phone } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import UserProfile from './UserProfile';
 import CreateGroupModal from './CreateGroupModal';
 
-const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenStatus }) => {
+const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenStatus, onOpenCalls }) => {
   const [conversations, setConversations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -133,6 +133,9 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
           <h2 style={{ fontSize: '18px', fontWeight: '500', color: 'var(--text)', margin: 0 }}>Chats</h2>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button onClick={onOpenCalls} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Calls">
+            <Phone size={20} />
+          </button>
           <button onClick={onOpenStatus} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Status">
             <CircleDashed size={20} />
           </button>

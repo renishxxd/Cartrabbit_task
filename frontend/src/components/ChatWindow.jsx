@@ -4,6 +4,7 @@ import MessageInput from './MessageInput';
 import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { useSocket } from '../services/useSocket';
 
 const DropdownItem = ({ icon, text, onClick }) => (
   <div 
@@ -29,6 +30,8 @@ const DropdownItem = ({ icon, text, onClick }) => (
 const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputText, setInputText, handleSend, setRefreshTrigger, setShowContactInfo }) => {
   const messagesEndRef = useRef(null);
   const { user } = useAuth();
+  const { socket } = useSocket();
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
   
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,7 +54,33 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     setShowDropdown(false);
     setIsSelecting(false);
     setSelectedMessages([]);
+    setOtherUserTyping(false);
   }, [activeChat]);
+
+  useEffect(() => {
+    if (!socket || !activeChat) return;
+    
+    const handleTyping = (data) => {
+      // If we are getting typing event from the person we are actively chatting with
+      if (data.from === activeChat.id) {
+        setOtherUserTyping(true);
+      }
+    };
+
+    const handleStopTyping = (data) => {
+      if (data.from === activeChat.id) {
+        setOtherUserTyping(false);
+      }
+    };
+
+    socket.on('user_typing', handleTyping);
+    socket.on('user_stopped_typing', handleStopTyping);
+
+    return () => {
+      socket.off('user_typing', handleTyping);
+      socket.off('user_stopped_typing', handleStopTyping);
+    };
+  }, [socket, activeChat]);
 
   const handleBlockUser = async () => {
     try {
@@ -295,8 +324,11 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
             <h2 style={{ fontSize: '16px', fontWeight: '500', margin: '0 0 2px 0', color: 'var(--text)' }}>
               {activeChat.username}
             </h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-              {activeChat.isOnline ? 'online' : `last seen ${activeChat.lastSeen}`}
+            <p style={{ fontSize: '13px', color: otherUserTyping ? '#25D366' : 'var(--text-secondary)', margin: 0, fontWeight: otherUserTyping ? '500' : 'normal' }}>
+              {otherUserTyping 
+                ? 'typing...' 
+                : (activeChat.isOnline ? 'online' : `last seen ${activeChat.lastSeen}`)
+              }
             </p>
           </div>
         </div>
@@ -474,6 +506,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
         inputText={inputText}
         setInputText={setInputText}
         handleSend={handleSend}
+        activeChat={activeChat}
       />
     </div>
   );

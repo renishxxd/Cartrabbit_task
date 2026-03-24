@@ -4,6 +4,7 @@ import ChatWindow from '../components/ChatWindow';
 import ContactInfo from '../components/ContactInfo';
 import GroupInfoModal from '../components/GroupInfoModal';
 import StatusTab from '../components/StatusTab';
+import CallsTab from '../components/CallsTab';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +17,7 @@ const ChatPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0); 
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [showStatusTab, setShowStatusTab] = useState(false);
+  const [showCallsTab, setShowCallsTab] = useState(false);
   
   const { socket } = useSocket();
   const { logout, user } = useAuth();
@@ -189,6 +191,8 @@ const ChatPage = () => {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {showStatusTab ? (
           <StatusTab onBack={() => setShowStatusTab(false)} />
+        ) : showCallsTab ? (
+          <CallsTab onBack={() => setShowCallsTab(false)} setActiveChat={setActiveChat} />
         ) : (
           <>
             <Sidebar 
@@ -197,6 +201,7 @@ const ChatPage = () => {
               onLogout={logout}
               refreshTrigger={refreshTrigger}
               onOpenStatus={() => setShowStatusTab(true)}
+              onOpenCalls={() => setShowCallsTab(true)}
             />
             <ChatWindow 
               activeChat={activeChat} 
