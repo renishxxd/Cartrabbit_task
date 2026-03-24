@@ -27,7 +27,9 @@ export const addStatus = asyncHandler(async (req, res) => {
 // @route   GET /api/status
 // @access  Private
 export const getStatuses = asyncHandler(async (req, res) => {
-  const statuses = await Status.find({})
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const statuses = await Status.find({ createdAt: { $gt: twentyFourHoursAgo } })
     .populate('user', 'username avatar')
     .sort({ createdAt: -1 });
 

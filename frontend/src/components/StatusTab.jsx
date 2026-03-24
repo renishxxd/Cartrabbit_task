@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Plus, X } from 'lucide-react';
+import { ArrowLeft, User, Plus, X, Image } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +12,9 @@ const StatusTab = ({ onBack }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newStatusText, setNewStatusText] = useState('');
   const [newStatusBg, setNewStatusBg] = useState('#0B141A');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  const fileInputRef = React.useRef(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -30,16 +33,39 @@ const StatusTab = ({ onBack }) => {
   };
 
   const handleAddStatus = async () => {
-    if (!newStatusText.trim()) return;
+    if (!newStatusText.trim() && !selectedFile) return;
     setIsLoading(true);
+
+    let mediaUrl = null;
+    let type = 'text';
+
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append('media', selectedFile);
+      try {
+        const { data } = await api.post('/messages/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        mediaUrl = data.data.url;
+        type = 'image';
+      } catch (err) {
+        console.error(err);
+        alert('Failed to upload image');
+        setIsLoading(false);
+        return;
+      }
+    }
+
     try {
       await api.post('/status', {
-        content: newStatusText,
-        type: 'text',
+        content: mediaUrl || newStatusText,
+        type: type,
         backgroundColor: newStatusBg
       });
       setShowAddForm(false);
       setNewStatusText('');
+      setSelectedFile(null);
+      setPreviewUrl('');
       fetchStatuses();
     } catch (e) {
       alert('Error adding status');
@@ -120,21 +146,52 @@ const StatusTab = ({ onBack }) => {
       <div style={{ flex: 1, backgroundColor: '#0B141A', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         {showAddForm ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '500px' }}>
-             <h3 style={{ color: 'white' }}>Create Text Status</h3>
-             <textarea 
-               value={newStatusText}
-               onChange={e => setNewStatusText(e.target.value)}
-               placeholder="Type a status..."
-               style={{ width: '100%', height: '200px', padding: '24px', backgroundColor: newStatusBg, color: 'white', fontSize: '24px', border: 'none', borderRadius: '12px', resize: 'none', textAlign: 'center', outline: 'none' }}
-             />
-             <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
-               {bgColors.map(c => (
-                 <div key={c} onClick={() => setNewStatusBg(c)} style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer', border: newStatusBg === c ? '2px solid white' : 'none' }} />
-               ))}
-             </div>
-             <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-               <button onClick={() => setShowAddForm(false)} style={{ padding: '12px 24px', backgroundColor: 'transparent', color: 'white', border: '1px solid white', borderRadius: '24px', cursor: 'pointer' }}>Cancel</button>
-               <button onClick={handleAddStatus} disabled={isLoading || !newStatusText.trim()} style={{ padding: '12px 24px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: '24px', cursor: 'pointer' }}>{isLoading ? 'Posting...' : 'Send Status'}</button>
+             <h3 style={{ color: 'white', marginBottom: '24px' }}>Create Status</h3>
+             
+             {previewUrl ? (
+               <div style={{ position: 'relative', width: '100%', height: '300px', backgroundColor: 'var(--bg-chat)', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                 <img src={previewUrl} alt="Status preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                 <X size={24} color="white" style={{ position: 'absolute', top: 10, right: 10, cursor: 'pointer', backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: '50%', padding: '4px' }} onClick={() => { setSelectedFile(null); setPreviewUrl(''); }} />
+               </div>
+             ) : (
+               <textarea 
+                 value={newStatusText}
+                 onChange={e => setNewStatusText(e.target.value)}
+                 placeholder="Type a status..."
+                 style={{ width: '100%', height: '200px', padding: '24px', backgroundColor: newStatusBg, color: 'white', fontSize: '24px', border: 'none', borderRadius: '12px', resize: 'none', textAlign: 'center', outline: 'none' }}
+               />
+             )}
+
+             {!previewUrl && (
+               <div style={{ display: 'flex', gap: '8px', marginTop: '24px' }}>
+                 {bgColors.map(c => (
+                   <div key={c} onClick={() => setNewStatusBg(c)} style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: c, cursor: 'pointer', border: newStatusBg === c ? '2px solid white' : 'none' }} />
+                 ))}
+               </div>
+             )}
+
+             <div style={{ display: 'flex', gap: '16px', marginTop: '32px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+               <input 
+                 type="file" 
+                 accept="image/*" 
+                 ref={fileInputRef} 
+                 style={{ display: 'none' }} 
+                 onChange={(e) => { 
+                   if (e.target.files && e.target.files[0]) {
+                     setSelectedFile(e.target.files[0]);
+                     setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+                     setNewStatusText(''); // Clear text when image is chosen
+                   }
+                   e.target.value = null;
+                 }}
+               />
+               
+               <button onClick={() => fileInputRef.current?.click()} style={{ padding: '12px 24px', backgroundColor: 'var(--bg-sidebar)', color: 'white', border: '1px solid var(--divider)', borderRadius: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                 <Image size={18} /> Add Image
+               </button>
+
+               <button onClick={() => { setShowAddForm(false); setSelectedFile(null); setPreviewUrl(''); }} style={{ padding: '12px 24px', backgroundColor: 'transparent', color: 'white', border: '1px solid white', borderRadius: '24px', cursor: 'pointer' }}>Cancel</button>
+               <button onClick={handleAddStatus} disabled={isLoading || (!newStatusText.trim() && !selectedFile)} style={{ padding: '12px 24px', backgroundColor: 'var(--accent)', color: 'white', border: 'none', borderRadius: '24px', cursor: 'pointer' }}>{isLoading ? 'Posting...' : 'Send Status'}</button>
              </div>
           </div>
         ) : activeUserIdx !== null ? (
@@ -147,10 +204,18 @@ const StatusTab = ({ onBack }) => {
             <div style={{ position: 'absolute', top: '40px', right: '40px' }}>
               <X size={32} color="white" cursor="pointer" onClick={() => setActiveUserIdx(null)} />
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' }}>
-               <h1 style={{ color: 'white', fontSize: '48px', textAlign: 'center', maxWidth: '800px', wordBreak: 'break-word' }}>
-                 {statusesGrouped[activeUserIdx].statuses[activeStatusIdx].content}
-               </h1>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', overflow: 'hidden' }}>
+               {statusesGrouped[activeUserIdx].statuses[activeStatusIdx].type === 'image' ? (
+                 <img 
+                   src={statusesGrouped[activeUserIdx].statuses[activeStatusIdx].content} 
+                   alt="Status Media" 
+                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '8px' }} 
+                 />
+               ) : (
+                 <h1 style={{ color: 'white', fontSize: '48px', textAlign: 'center', maxWidth: '800px', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                   {statusesGrouped[activeUserIdx].statuses[activeStatusIdx].content}
+                 </h1>
+               )}
             </div>
             <div style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
               {new Date(statusesGrouped[activeUserIdx].statuses[activeStatusIdx].createdAt).toLocaleString()}
