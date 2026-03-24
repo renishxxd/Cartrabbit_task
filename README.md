@@ -6,28 +6,19 @@ A full-stack, real-time chat application inspired by WhatsApp Web, built using t
 
 ## Features Included
 
-1. **User Setup**
-   - Secure User Authentication (JWT-based).
-   - Unique generated avatars and usernames for distinct chat interactions.
-   - Comprehensive user search logic to start new conversations.
-
-2. **Chat Interface**
-   - True-to-life split-pane interface (Sidebar & Chat Area).
-   - "Unread" message counts styled exactly like WhatsApp.
-   - Distinctive sender/receiver message styling with timestamps.
-   - Auto-scrolls to the newest message smoothly.
-   - Contact info overlay and custom "Disappearing Messages" timer UI.
-
-3. **Messaging Functionality**
-   - Real-time text messaging.
-   - Seamless media sharing (images, videos, documents, audio) backed by Cloudinary.
-   - Persistent storage via MongoDB.
-   - Chat history fetching and unread read-receipt system.
-
-4. **Backend Operations & Real-Time Setup**
-   - Express REST API.
-   - Instant real-time pushing using WebSockets (`socket.io`).
-   - Clean MVC controller logic handling authentication, user blocking, reporting, and messages.
+- **Authentication** – Register/Login with JWT-based sessions
+- **Real-time Messaging** – Instant delivery via Socket.IO WebSockets
+- **WebRTC Audio & Video Calling** – Peer-to-peer media streaming with dynamic ringing overlays
+- **24-Hour Ephemeral Statuses** – Upload text/image/video stories utilizing MongoDB TTL indexes for auto-deletion
+- **Message Reactions** – React to individual messages instantly with a custom emoji tray
+- **Call History** – Dedicated timeline showing incoming, outgoing, missed calls, and duration
+- **Two-panel Layout** – Modern 3-column architecture with a vertical navigation rail
+- **Conversations List** – Shows last message, unread count, timestamps
+- **Typing Indicators & Presence** – Live "typing...", "Online", and accurate Last Seen tracking
+- **Read Receipts** – Double-check marks (grey/blue) synced instantly
+- **Persistent Messages** – All messages and media stored safely in MongoDB Cloudinary
+- **Date Dividers** – Groups messages by date (Today, Yesterday, etc.)
+- **Responsive Design** – Mobile-friendly with automatic panel switching
 
 > **Note on Local API Routing:** The frontend is already brilliantly configured to automatically fall back to the local backend `http://localhost:5000` out of the box! If you ever need to manually change the paths (for example, to point your local computer to a live backend), you can either define `VITE_API_URL` in a `.env` file, or manually edit the base URLs located inside `frontend/src/services/api.js` and `frontend/src/services/useSocket.js`.
 
