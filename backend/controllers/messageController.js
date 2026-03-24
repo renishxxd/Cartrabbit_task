@@ -72,6 +72,10 @@ export const sendMessage = asyncHandler(async (req, res) => {
       mediaType: newMessage.mediaType,
       mediaMetadata: newMessage.mediaMetadata,
       senderId: newMessage.senderId,
+      sender: {
+        username: req.user.username,
+        avatar: req.user.avatar
+      },
       status: newMessage.status,
       isSystemMessage: newMessage.isSystemMessage || false,
       isEdited: newMessage.isEdited || false,
@@ -121,7 +125,9 @@ export const getMessages = asyncHandler(async (req, res) => {
     return res.status(200).json({ success: true, data: [] });
   }
 
-  const messages = await Message.find({ conversationId: conversation._id }).sort({ createdAt: 1 });
+  const messages = await Message.find({ conversationId: conversation._id })
+    .sort({ createdAt: 1 })
+    .populate('senderId', 'username avatar');
 
   const formattedMessages = messages.map(msg => ({
     id: msg._id,
@@ -129,7 +135,8 @@ export const getMessages = asyncHandler(async (req, res) => {
     mediaUrl: msg.mediaUrl,
     mediaType: msg.mediaType,
     mediaMetadata: msg.mediaMetadata,
-    senderId: msg.senderId,
+    senderId: msg.senderId && msg.senderId._id ? msg.senderId._id : msg.senderId,
+    sender: msg.senderId && msg.senderId.username ? { username: msg.senderId.username, avatar: msg.senderId.avatar } : null,
     status: msg.status,
     isSystemMessage: msg.isSystemMessage || false,
     isEdited: msg.isEdited || false,
@@ -146,6 +153,7 @@ export const getMessages = asyncHandler(async (req, res) => {
 // @access  Private
 export const getConversations = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  const currentUser = await User.findById(userId);
 
   const conversations = await Conversation.find({
     participants: userId
@@ -177,7 +185,8 @@ export const getConversations = asyncHandler(async (req, res) => {
           lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
           updatedAt: conv.updatedAt,
           unreadCount: unreadCount,
-          isOnline: false
+          isOnline: false,
+          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === conv._id.toString())
         };
       } else {
         const validParticipants = conv.participants.filter(p => p != null);
@@ -195,7 +204,8 @@ export const getConversations = asyncHandler(async (req, res) => {
           lastSeen: conv.lastMessage ? new Date(conv.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
           updatedAt: conv.updatedAt,
           unreadCount: unreadCount,
-          isOnline: false
+          isOnline: false,
+          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === otherParticipant._id.toString())
         };
       }
     })
@@ -230,7 +240,7 @@ export const markConversationsAsRead = asyncHandler(async (req, res) => {
   }
 
   const result = await Message.updateMany(
-    { conversationId: conversation._id, senderId: userToChatId, read: false },
+    { conversationId: conversation._id, senderId: { $ne: userId }, read: false },
     { $set: { read: true, status: 'read' } }
   );
 

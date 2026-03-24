@@ -13,6 +13,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [localRefresh, setLocalRefresh] = useState(0);
+  const [filter, setFilter] = useState('all');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -61,7 +62,24 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
     setIsSearching(false);
   };
 
-  const listToRender = isSearching ? searchResults : conversations;
+  const unreadCount = conversations.filter(c => c.unreadCount > 0).length;
+  const favsCount = conversations.filter(c => c.isFavourite).length;
+  const groupsCount = conversations.filter(c => c.isGroup).length;
+
+  const filters = [
+    { id: 'all', label: 'All' },
+    { id: 'unread', label: `Unread ${unreadCount > 0 ? unreadCount : ''}`.trim() },
+    { id: 'favourites', label: `Favourites ${favsCount > 0 ? favsCount : ''}`.trim() },
+    { id: 'groups', label: `Groups ${groupsCount > 0 ? groupsCount : ''}`.trim() }
+  ];
+
+  let listToRender = isSearching ? searchResults : conversations;
+  
+  if (!isSearching && filter !== 'all') {
+    if (filter === 'unread') listToRender = listToRender.filter(c => c.unreadCount > 0);
+    if (filter === 'favourites') listToRender = listToRender.filter(c => c.isFavourite);
+    if (filter === 'groups') listToRender = listToRender.filter(c => c.isGroup);
+  }
 
   return (
     <div className={`sidebar-container ${activeChat ? 'hide-on-mobile' : 'full-width-mobile'}`} style={{
@@ -153,6 +171,31 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
           />
         </div>
       </div>
+
+      {/* Filter Pills */}
+      {!isSearching && (
+        <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', overflowX: 'auto', backgroundColor: 'var(--bg-main)', borderBottom: '1px solid var(--divider)' }}>
+          {filters.map(f => (
+            <div 
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              style={{
+                padding: '6px 16px',
+                backgroundColor: filter === f.id ? 'rgba(0, 168, 132, 0.1)' : 'var(--bg-sidebar)',
+                color: filter === f.id ? 'var(--accent)' : 'var(--text-secondary)',
+                borderRadius: '16px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                border: filter === f.id ? '1px solid var(--accent)' : '1px solid var(--divider)'
+              }}
+            >
+              {f.label}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Users/Conversations List */}
       <div style={{ flex: 1, overflowY: 'auto' }}>

@@ -57,6 +57,10 @@ a:hover {
   background: rgba(255, 255, 255, 0.24);
 }
 
+.mobile-only {
+  display: none !important;
+}
+
 /* Responsive Layout */
 @media (max-width: 768px) {
   .sidebar-container.hide-on-mobile {
@@ -84,8 +88,4 @@ a:hover {
   .desktop-only {
     display: none !important;
   }
-}
-
-.mobile-only {
-  display: none !important;
 }

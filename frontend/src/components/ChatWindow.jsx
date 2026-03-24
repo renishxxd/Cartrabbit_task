@@ -80,6 +80,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     try {
       const { data } = await api.post(`/users/favourite/${activeChat.id}`);
       alert(data.isFavourite ? 'Chat added to favourites.' : 'Chat removed from favourites.');
+      setRefreshTrigger(prev => prev + 1);
       setShowDropdown(false);
     } catch (e) {
       alert('Failed to toggle favourite');
@@ -444,6 +445,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
                 key={msg.id} 
                 message={msg} 
                 isOwn={msg.senderId === user?._id || msg.senderId === 'me'} 
+                isGroup={activeChat.isGroup}
                 isSelecting={isSelecting}
                 isSelected={selectedMessages.includes(msg.id)}
                 onToggleSelect={toggleSelectMessage}

@@ -6,7 +6,7 @@ const getDownloadUrl = (url) => {
   return url.replace('/upload/', '/upload/fl_attachment/');
 };
 
-const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete }) => {
+const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
@@ -71,6 +71,12 @@ const MessageBubble = ({ message, isOwn, isSelecting, isSelected, onToggleSelect
         boxShadow: '0 1px 1px rgba(0,0,0,0.1)',
         position: 'relative'
       }}>
+        {!isOwn && isGroup && message.sender && (
+          <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--accent)', marginBottom: '4px' }}>
+            {message.sender.username}
+          </div>
+        )}
+
         {isOwn && !message.isDeleted && isHovered && !isSelecting && !isEditing && (
           <div style={{
             position: 'absolute',
