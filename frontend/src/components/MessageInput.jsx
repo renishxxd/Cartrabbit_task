@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Paperclip, Smile, X, Loader } from 'lucide-react';
+import { Send, Paperclip, Smile, X, Loader, Mic, Trash2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
@@ -10,9 +10,15 @@ const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  
   const pickerRef = useRef(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const timerIntervalRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -23,6 +29,13 @@ const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isRecording) {
+      discardRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChat]);
 
   const onEmojiClick = (emojiObject) => {
     setInputText(prev => prev + emojiObject.emoji);
@@ -114,6 +127,93 @@ const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
     }
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop()); // release mic
+        if (audioBlob.size > 0 && !window.discardRecordingInProgress) {
+          sendVoiceMessage(audioBlob);
+        }
+      };
+
+      mediaRecorderRef.current.start(200);
+      setIsRecording(true);
+      setRecordingTime(0);
+      window.discardRecordingInProgress = false;
+      
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (err) {
+      alert('Microphone access denied or not available.');
+    }
+  };
+
+  const stopRecordingAndSend = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      clearInterval(timerIntervalRef.current);
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const discardRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      clearInterval(timerIntervalRef.current);
+      window.discardRecordingInProgress = true;
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setRecordingTime(0);
+    }
+  };
+
+  const sendVoiceMessage = async (blob) => {
+    setIsUploading(true);
+    const file = new File([blob], `voice-message-${Date.now()}.webm`, { type: 'audio/webm' });
+    const formData = new FormData();
+    formData.append('media', file);
+
+    try {
+      const { data } = await api.post('/messages/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      const mediaData = {
+        url: data.data.url,
+        type: 'audio',
+        metadata: {
+          filename: data.data.filename,
+          size: data.data.size,
+          format: data.data.format
+        }
+      };
+      
+      handleSend('', mediaData);
+    } catch (err) {
+      console.error("Upload failed", err);
+      alert('Failed to send voice message');
+    }
+    setIsUploading(false);
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--bg-sidebar)',
@@ -184,32 +284,51 @@ const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
             />
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-        <input 
-          type="text"
-          value={inputText}
-          onChange={handleInputChange}
-          onKeyDown={onKeyDown}
-          placeholder="Type a message"
-          style={{
-            width: '100%',
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text)',
-            fontSize: '15px',
-            outline: 'none'
-          }}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', width: '100%', minHeight: '24px' }}>
+          {isRecording ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ff4d4f', animation: 'pulse 1.5s infinite' }} />
+                <span style={{ color: 'var(--text)', fontSize: '15px', fontFamily: 'monospace' }}>
+                  {formatTime(recordingTime)}
+                </span>
+              </div>
+              <Trash2 
+                size={20} 
+                color="var(--text-secondary)" 
+                style={{ cursor: 'pointer', transition: 'color 0.2s' }} 
+                onClick={discardRecording}
+                onMouseEnter={e => e.currentTarget.style.color = '#ff4d4f'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+              />
+            </div>
+          ) : (
+            <input 
+              type="text"
+              value={inputText}
+              onChange={handleInputChange}
+              onKeyDown={onKeyDown}
+              placeholder="Type a message"
+              style={{
+                width: '100%',
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text)',
+                fontSize: '15px',
+                outline: 'none'
+              }}
+            />
+          )}
         </div>
       </div>
 
       <button 
-        onClick={onSendClick}
-        disabled={(!inputText.trim() && !selectedFile) || isUploading}
+        onClick={isRecording ? stopRecordingAndSend : (inputText.trim() || selectedFile ? onSendClick : startRecording)}
+        disabled={isUploading}
         style={{ 
-          background: (inputText.trim() || selectedFile) ? 'var(--accent)' : 'var(--bg-chat)', 
+          background: (inputText.trim() || selectedFile || isRecording) ? 'var(--accent)' : 'var(--bg-chat)', 
           border: 'none', 
-          cursor: (inputText.trim() || selectedFile) && !isUploading ? 'pointer' : 'default', 
+          cursor: isUploading ? 'default' : 'pointer', 
           color: '#fff',
           width: '40px',
           height: '40px',
@@ -221,7 +340,13 @@ const MessageInput = ({ inputText, setInputText, handleSend, activeChat }) => {
           flexShrink: 0
         }}
       >
-        {isUploading ? <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={18} style={{ marginLeft: (inputText.trim() || selectedFile) ? '2px' : '0' }} />}
+        {isUploading ? (
+          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+        ) : (inputText.trim() || selectedFile || isRecording) ? (
+          <Send size={18} style={{ marginLeft: '2px' }} />
+        ) : (
+          <Mic size={18} />
+        )}
       </button>
     </div>
   );
