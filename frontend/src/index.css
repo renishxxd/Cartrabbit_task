@@ -56,3 +56,36 @@ a:hover {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.24);
 }
+
+/* Responsive Layout */
+@media (max-width: 768px) {
+  .sidebar-container.hide-on-mobile {
+    display: none !important;
+  }
+  .sidebar-container.full-width-mobile {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+    border-right: none !important;
+  }
+  
+  .chat-container.hide-on-mobile {
+    display: none !important;
+  }
+  .chat-container.full-width-mobile {
+    width: 100% !important;
+    flex: 1 !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+.mobile-only {
+  display: none !important;
+}

@@ -64,7 +64,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
   const listToRender = isSearching ? searchResults : conversations;
 
   return (
-    <div style={{
+    <div className={`sidebar-container ${activeChat ? 'hide-on-mobile' : 'full-width-mobile'}`} style={{
       width: '30%',
       minWidth: '300px',
       maxWidth: '400px',

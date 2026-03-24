@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
-import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone } from 'lucide-react';
+import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
@@ -173,7 +173,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
 
   if (!activeChat) {
     return (
-      <div style={{
+      <div className="chat-container hide-on-mobile" style={{
         flex: 1,
         backgroundColor: 'var(--bg-main)',
         display: 'flex',
@@ -208,7 +208,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     : messages;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
+    <div className="chat-container full-width-mobile" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0 }}>
       {/* Chat Header */}
       {isSelecting ? (
         <div style={{
@@ -253,6 +253,13 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
           borderBottom: isSearching ? 'none' : '1px solid var(--divider)'
         }}>
         <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+          <div 
+            className="mobile-only" 
+            style={{ marginRight: '12px', cursor: 'pointer', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setActiveChat(null)}
+          >
+            <ArrowLeft size={24} color="var(--text-secondary)" />
+          </div>
           <div style={{ 
             width: '40px', 
             height: '40px', 
