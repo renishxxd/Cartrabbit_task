@@ -112,6 +112,26 @@ export const toggleFavouriteUser = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, isFavourite: !isFavourite });
 });
 
+// @desc    Toggle archive status of a chat (user or group)
+// @route   POST /api/users/archive/:id
+// @access  Private
+export const toggleArchiveUser = asyncHandler(async (req, res) => {
+  const targetId = req.params.id; // Could be a User ID or a Conversation ID
+  const currentUserId = req.user._id;
+
+  const user = await User.findById(currentUserId);
+  const isArchived = user.archivedChats.includes(targetId);
+  
+  if (isArchived) {
+    user.archivedChats.pull(targetId);
+  } else {
+    user.archivedChats.push(targetId);
+  }
+  
+  await user.save();
+  res.status(200).json({ success: true, isArchived: !isArchived });
+});
+
 // @desc    Report a user
 // @route   POST /api/users/report/:id
 // @access  Private

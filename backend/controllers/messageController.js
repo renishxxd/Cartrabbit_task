@@ -188,7 +188,8 @@ export const getConversations = asyncHandler(async (req, res) => {
           updatedAt: conv.updatedAt,
           unreadCount: unreadCount,
           isOnline: false,
-          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === conv._id.toString())
+          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === conv._id.toString()),
+          isArchived: currentUser.archivedChats && currentUser.archivedChats.some(id => id.toString() === conv._id.toString())
         };
       } else {
         const validParticipants = conv.participants.filter(p => p != null);
@@ -207,7 +208,8 @@ export const getConversations = asyncHandler(async (req, res) => {
           updatedAt: conv.updatedAt,
           unreadCount: unreadCount,
           isOnline: false,
-          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === otherParticipant._id.toString())
+          isFavourite: currentUser.favouriteChats && currentUser.favouriteChats.some(id => id.toString() === otherParticipant._id.toString()),
+          isArchived: currentUser.archivedChats && currentUser.archivedChats.some(id => id.toString() === otherParticipant._id.toString())
         };
       }
     })

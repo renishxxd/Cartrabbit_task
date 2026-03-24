@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Search, LogOut, Users, CircleDashed, Phone } from 'lucide-react';
+import { User, Search, LogOut, Users, CircleDashed, Phone, Archive, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import UserProfile from './UserProfile';
@@ -12,6 +12,7 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
   const [isSearching, setIsSearching] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [localRefresh, setLocalRefresh] = useState(0);
   const [filter, setFilter] = useState('all');
   const { user } = useAuth();
@@ -75,6 +76,11 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
 
   let listToRender = isSearching ? searchResults : conversations;
   
+  const archivedConversations = listToRender.filter(c => c.isArchived);
+  const mainConversations = listToRender.filter(c => !c.isArchived);
+
+  listToRender = showArchived ? archivedConversations : mainConversations;
+  
   if (!isSearching && filter !== 'all') {
     if (filter === 'unread') listToRender = listToRender.filter(c => c.unreadCount > 0);
     if (filter === 'favourites') listToRender = listToRender.filter(c => c.isFavourite);
@@ -109,28 +115,39 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
         borderBottom: '1px solid var(--divider)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div
-            title="View Profile"
-            onClick={() => setShowProfile(true)}
-            style={{ 
-              width: '40px', 
-              height: '40px', 
-              borderRadius: '50%', 
-              backgroundColor: 'var(--accent)', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center',
-              cursor: 'pointer',
-              overflow: 'hidden',
-              flexShrink: 0
-            }}
-          >
-            {user?.avatar
-              ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <User size={24} color="#fff" />
-            }
-          </div>
-          <h2 style={{ fontSize: '18px', fontWeight: '500', color: 'var(--text)', margin: 0 }}>Chats</h2>
+          {showArchived ? (
+            <>
+              <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowArchived(false)}>
+                <ArrowLeft size={24} color="var(--text-secondary)" />
+              </div>
+              <h2 style={{ fontSize: '18px', fontWeight: '500', color: 'var(--text)', margin: 0 }}>Archived</h2>
+            </>
+          ) : (
+            <>
+              <div
+                title="View Profile"
+                onClick={() => setShowProfile(true)}
+                style={{ 
+                  width: '40px', 
+                  height: '40px', 
+                  borderRadius: '50%', 
+                  backgroundColor: 'var(--accent)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  overflow: 'hidden',
+                  flexShrink: 0
+                }}
+              >
+                {user?.avatar
+                  ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <User size={24} color="#fff" />
+                }
+              </div>
+              <h2 style={{ fontSize: '18px', fontWeight: '500', color: 'var(--text)', margin: 0 }}>Chats</h2>
+            </>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <button onClick={onOpenCalls} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Calls">
@@ -202,9 +219,39 @@ const Sidebar = ({ activeChat, setActiveChat, onLogout, refreshTrigger, onOpenSt
 
       {/* Users/Conversations List */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
+        {!showArchived && !isSearching && filter === 'all' && archivedConversations.length > 0 && (
+          <div 
+            onClick={() => setShowArchived(true)}
+            style={{
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '24px',
+              cursor: 'pointer',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.03)',
+              color: 'var(--text)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-chat)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <div style={{ 
+              width: '48px', 
+              display: 'flex', 
+              justifyContent: 'center',
+              color: 'var(--accent)'
+            }}>
+              <Archive size={24} />
+            </div>
+            <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '16px', fontWeight: '500' }}>Archived</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{archivedConversations.length}</span>
+            </div>
+          </div>
+        )}
+
         {listToRender.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px' }}>
-            {isSearching ? 'No users found' : 'No conversations yet. Search for a username to start chatting!'}
+            {isSearching ? 'No users found' : (showArchived ? 'No archived chats' : 'No conversations yet.')}
           </div>
         ) : (
           listToRender.map(user => {

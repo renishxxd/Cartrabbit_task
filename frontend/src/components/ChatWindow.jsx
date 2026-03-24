@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
-import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft } from 'lucide-react';
+import { User, MoreVertical, Search, X, Info, CheckSquare, BellOff, Clock, Heart, XCircle, ThumbsDown, Slash, MinusCircle, Trash2, Video, Phone, ArrowLeft, Archive } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { useSocket } from '../services/useSocket';
@@ -109,10 +109,25 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     try {
       const { data } = await api.post(`/users/favourite/${activeChat.id}`);
       alert(data.isFavourite ? 'Chat added to favourites.' : 'Chat removed from favourites.');
+      setActiveChat({ ...activeChat, isFavourite: data.isFavourite });
       setRefreshTrigger(prev => prev + 1);
       setShowDropdown(false);
     } catch (e) {
       alert('Failed to toggle favourite');
+    }
+  };
+
+  const handleArchive = async () => {
+    try {
+      const { data } = await api.post(`/users/archive/${activeChat.id}`);
+      alert(data.isArchived ? 'Chat archived.' : 'Chat unarchived.');
+      setActiveChat({ ...activeChat, isArchived: data.isArchived });
+      setRefreshTrigger(prev => prev + 1);
+      setShowDropdown(false);
+      // Close chat view automatically if we archive it to clean up the screen
+      if (data.isArchived) setActiveChat(null);
+    } catch (e) {
+      alert('Failed to toggle archive');
     }
   };
 
@@ -381,6 +396,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
               display: 'flex',
               flexDirection: 'column'
             }}>
+              <DropdownItem icon={<Archive size={16}/>} text={activeChat.isArchived ? "Unarchive chat" : "Archive chat"} onClick={handleArchive} />
               <DropdownItem icon={<Info size={16}/>} text={activeChat.isGroup ? "Group info" : "Contact info"} onClick={() => { setShowContactInfo(true); setShowDropdown(false); }} />
               <DropdownItem icon={<CheckSquare size={16}/>} text="Select messages" onClick={() => { setIsSelecting(true); setShowDropdown(false); }} />
               <DropdownItem icon={<Clock size={16}/>} text="Disappearing messages" onClick={handleDisappearing} />
