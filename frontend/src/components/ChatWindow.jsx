@@ -164,6 +164,19 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
     }
   };
 
+  const handleReactSubmit = async (messageId, emoji) => {
+    try {
+      const { data } = await api.put(`/messages/react/${messageId}`, { emoji });
+      if (data.success) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId ? { ...msg, reactions: data.reactions } : msg
+        ));
+      }
+    } catch (e) {
+      alert('Failed to add reaction');
+    }
+  };
+
   const toggleSelectMessage = (id) => {
     setSelectedMessages(prev => 
       prev.includes(id) 
@@ -447,6 +460,7 @@ const ChatWindow = ({ activeChat, setActiveChat, messages, setMessages, inputTex
                 onToggleSelect={toggleSelectMessage}
                 onEditSubmit={handleEditSubmit}
                 onDelete={handleDeleteSubmit}
+                onReact={handleReactSubmit}
               />
             );
           })

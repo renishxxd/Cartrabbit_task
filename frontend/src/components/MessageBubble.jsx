@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { FileText, Download, Check, CheckCheck, Pencil, Trash2, X } from 'lucide-react';
+import { FileText, Download, Check, CheckCheck, Pencil, Trash2, X, Smile } from 'lucide-react';
 
 const getDownloadUrl = (url) => {
   if (!url) return '';
   return url.replace('/upload/', '/upload/fl_attachment/');
 };
 
-const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete }) => {
+const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onToggleSelect, onEditSubmit, onDelete, onReact }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
   const [editText, setEditText] = useState('');
+  const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
 
   const startEditing = () => {
     setEditText(message.text || '');
@@ -31,7 +33,7 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
         display: 'flex',
         alignItems: 'center',
         justifyContent: isOwn ? 'flex-end' : 'flex-start',
-        marginBottom: '12px',
+        marginBottom: message.reactions && message.reactions.length > 0 ? '24px' : '12px',
         width: '100%',
         padding: '0 8px',
         backgroundColor: isSelected ? 'rgba(0, 168, 132, 0.2)' : 'transparent',
@@ -77,11 +79,12 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
           </div>
         )}
 
-        {isOwn && !message.isDeleted && isHovered && !isSelecting && !isEditing && (
+        {!message.isDeleted && (isHovered || showReactions) && !isSelecting && !isEditing && (
           <div style={{
             position: 'absolute',
-            top: '-12px',
-            right: '0',
+            top: '-16px',
+            right: isOwn ? '0' : 'auto',
+            left: isOwn ? 'auto' : '0',
             backgroundColor: 'var(--bg-sidebar)',
             borderRadius: '12px',
             padding: '4px 8px',
@@ -90,8 +93,43 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
             boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
             zIndex: 10
           }}>
-            <Pencil size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={startEditing} />
-            <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => onDelete(message.id)} />
+            <Smile size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => setShowReactions(!showReactions)} />
+            {isOwn && <Pencil size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={startEditing} />}
+            {isOwn && <Trash2 size={14} color="var(--text-secondary)" style={{ cursor: 'pointer' }} onClick={() => onDelete(message.id)} />}
+            
+            {showReactions && (
+              <>
+              <div 
+                style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 15 }} 
+                onClick={(e) => { e.stopPropagation(); setShowReactions(false); }} 
+              />
+              <div style={{
+                position: 'absolute',
+                top: '-36px',
+                left: isOwn ? 'auto' : '0',
+                right: isOwn ? '0' : 'auto',
+                backgroundColor: 'var(--bg-sidebar)',
+                borderRadius: '24px',
+                padding: '4px 8px',
+                display: 'flex',
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                zIndex: 20
+              }}>
+                {commonEmojis.map(emoji => (
+                  <span 
+                    key={emoji} 
+                    style={{ cursor: 'pointer', fontSize: '18px', transition: 'transform 0.1s' }} 
+                    onClick={(e) => { e.stopPropagation(); onReact(message.id, emoji); setShowReactions(false); setIsHovered(false); }} 
+                    onMouseEnter={e => e.target.style.transform='scale(1.2)'} 
+                    onMouseLeave={e => e.target.style.transform='scale(1)'}
+                  >
+                    {emoji}
+                  </span>
+                ))}
+              </div>
+              </>
+            )}
           </div>
         )}
 
@@ -240,6 +278,31 @@ const MessageBubble = ({ message, isOwn, isGroup, isSelecting, isSelected, onTog
             </span>
           )}
         </div>
+
+        {message.reactions && message.reactions.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            bottom: '-14px',
+            left: isOwn ? 'auto' : '4px',
+            right: isOwn ? '4px' : 'auto',
+            backgroundColor: 'var(--bg-sidebar)',
+            border: '2px solid var(--bg-main)',
+            borderRadius: '12px',
+            padding: '2px 6px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '12px',
+            zIndex: 5
+          }}>
+            {[...new Set(message.reactions.map(r => r.emoji))].map(emoji => (
+              <span key={emoji}>{emoji}</span>
+            ))}
+            {message.reactions.length > 1 && (
+              <span style={{ color: 'var(--text-secondary)', fontSize: '11px', marginLeft: '2px' }}>{message.reactions.length}</span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

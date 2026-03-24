@@ -27,6 +27,10 @@ const messageSchema = new mongoose.Schema(
       size: Number,
       format: String,
     },
+    reactions: [{
+      emoji: String,
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }],
     // Action tracking
     isEdited: {
       type: Boolean,

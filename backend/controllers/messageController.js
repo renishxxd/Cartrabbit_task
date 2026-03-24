@@ -80,6 +80,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
       isSystemMessage: newMessage.isSystemMessage || false,
       isEdited: newMessage.isEdited || false,
       isDeleted: newMessage.isDeleted || false,
+      reactions: [],
       time: new Date(newMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: newMessage.createdAt
     };
@@ -141,6 +142,7 @@ export const getMessages = asyncHandler(async (req, res) => {
     isSystemMessage: msg.isSystemMessage || false,
     isEdited: msg.isEdited || false,
     isDeleted: msg.isDeleted || false,
+    reactions: msg.reactions || [],
     time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     createdAt: msg.createdAt
   }));
@@ -438,4 +440,55 @@ export const uploadMediaFile = asyncHandler(async (req, res) => {
   };
 
   res.status(200).json({ success: true, data: fileData });
+});
+
+// @desc    React to a message
+// @route   PUT /api/messages/react/:id
+// @access  Private
+export const reactToMessage = asyncHandler(async (req, res) => {
+  const { id: messageId } = req.params;
+  const { emoji } = req.body;
+  const userId = req.user._id;
+
+  const message = await Message.findById(messageId);
+
+  if (!message) {
+    res.status(404);
+    throw new Error('Message not found');
+  }
+
+  const existingReactionIndex = message.reactions.findIndex(r => r.userId.toString() === userId.toString());
+
+  if (existingReactionIndex > -1) {
+    // If the same emoji, toggle it off
+    if (message.reactions[existingReactionIndex].emoji === emoji) {
+      message.reactions.splice(existingReactionIndex, 1);
+    } else {
+      // Change emoji
+      message.reactions[existingReactionIndex].emoji = emoji;
+    }
+  } else {
+    // Add new reaction
+    message.reactions.push({ emoji, userId });
+  }
+
+  await message.save();
+
+  // Find the other participant(s) in the conversation to emit socket event
+  const conversation = await Conversation.findById(message.conversationId);
+  if (conversation) {
+    conversation.participants.forEach((participantId) => {
+      if (participantId.toString() !== userId.toString()) {
+        const receiverSocketId = getReceiverSocketId(participantId.toString());
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit('message_reacted', {
+            messageId: message._id,
+            reactions: message.reactions
+          });
+        }
+      }
+    });
+  }
+
+  res.status(200).json({ success: true, messageId: message._id, reactions: message.reactions });
 });

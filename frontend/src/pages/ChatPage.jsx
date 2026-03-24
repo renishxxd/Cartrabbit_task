@@ -101,6 +101,13 @@ const ChatPage = () => {
       setRefreshTrigger(prev => prev + 1);
     };
 
+    const handleMessageReacted = ({ messageId, reactions }) => {
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId ? { ...msg, reactions } : msg
+      ));
+      setRefreshTrigger(prev => prev + 1);
+    };
+
     const handleProfileUpdated = () => {
       setRefreshTrigger(prev => prev + 1);
     };
@@ -110,6 +117,7 @@ const ChatPage = () => {
     socket.on('messages_read', handleMessagesRead);
     socket.on('message_edited', handleMessageEdited);
     socket.on('message_deleted', handleMessageDeleted);
+    socket.on('message_reacted', handleMessageReacted);
     socket.on('profile_updated', handleProfileUpdated);
     socket.on('group_updated', handleProfileUpdated);
     
@@ -119,6 +127,7 @@ const ChatPage = () => {
       socket.off('messages_read', handleMessagesRead);
       socket.off('message_edited', handleMessageEdited);
       socket.off('message_deleted', handleMessageDeleted);
+      socket.off('message_reacted', handleMessageReacted);
       socket.off('profile_updated', handleProfileUpdated);
       socket.off('group_updated', handleProfileUpdated);
     };
