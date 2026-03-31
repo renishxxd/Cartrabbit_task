@@ -1,8 +1,6 @@
-# PingChat Web Clone
+# 💬 WhatsApp Web Clone (Full Stack MERN App)
 
 🟢 **Live Demo:** [https://cartrabbit-task.vercel.app](https://cartrabbit-task.vercel.app)
-
-# 💬 WhatsApp Web Clone (Full Stack MERN App)
 
 ## 📌 Project Overview
 
